@@ -57,7 +57,14 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Css\Home\Index.css" />
     <Content Include="index.html" />
+    <Content Include="Scripts\Common\FileSaver.js" />
+    <Content Include="Scripts\Common\FileSaver.min.js" />
+    <Content Include="Scripts\Common\jszip.js" />
+    <Content Include="Scripts\Common\jszip.min.js" />
+    <Content Include="Scripts\Home\Gamma.js" />
+    <Content Include="Scripts\Home\Index.js" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
@@ -70,6 +77,9 @@
     <None Include="Web.Release.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Content\Images\Home\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
