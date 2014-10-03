@@ -3,13 +3,16 @@
 <head>
     <meta charset="utf-8" />
     <title>画像処理サイト</title>
+    <link rel="stylesheet" href="Content/Css/Home/Index.css" />
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-    <script src="jszip.min.js"></script>
-    <!--<script src="FileSaver.min.js"></script>-->
-    <script src="Index.js"></script>
-    <script src="Gamma.js"></script>
+    <script src="Scripts/Common/jszip.min.js"></script>
+    <script src="Scripts/Home/Gamma.js"></script>
+    <script src="Scripts/Home/Index.js"></script>
 </head>
 <body>
+    <div id="file_drop_area">
+        ここにドラッグ・アンド・ドロップ
+    </div>
     <a href="#" id="download" download="test.zip">ダウンロード</a>
     <p>進捗：<span id="progress">0</span></p>
 </body>

@@ -1,2 +1,9 @@
-﻿body {
+﻿#file_drop_area {
+    background-color: beige;
+    width: 500px;
+    height: 200px;
+    border: 3px dashed #aaa;
+    text-align: center;
+    font-size: 22px;
+    line-height: 200px;
 }

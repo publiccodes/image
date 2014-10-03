@@ -1,30 +1,73 @@
 ﻿var FILE_NUM = 3;
-var MAX_WIDTH = 500;
+var MAX_WIDTH = 400;
 var MAX_HEIGHT = 0;
-var QUALITY = 1.0;
-var GAMMA = 1.0;
+var QUALITY = 0.8;
+var GAMMA = 3.0;
 
 var _progress = 0;
 
 $(function () {
+    setEvents();
+});
+
+function openFiles(files) {
     var count = 0;
     var images = new Array();
-    var files = new Array();
-    for (var i = 0; i < FILE_NUM; i++) {
-        files.push("sample0" + i + ".jpg");
-        var filename = "sample0" + i + ".jpg";
-        var image = new Image();
-        image.src = filename;
-        image.filename = filename;
-        image.addEventListener("load", function () {
-            images.push(this);
+    $(files).each(function (index, file) {
+        if (file.type == "image/jpeg") {
+            var reader = new FileReader();
+            reader.addEventListener("load", function (e) {
+                var image = new Image();
+                image.filename = file.name;
+                image.addEventListener("load", function () {
+                    images.push(this);
+                    count++;
+                    if (count == files.length) {
+                        loadedImages(images);
+                    }
+                });
+                image.src = e.target.result;
+            });
+            reader.readAsDataURL(file);
+        } else {
             count++;
-            if (count == FILE_NUM) {
-                loadedImages(images);
-            }
-        });
+        }
+    });
+}
+
+function setDropAreaStyle(isEnter) {
+    var style = {}
+    if (isEnter) {
+        style = {
+            "background-color": "#fafafa"
+        }
+    } else {
+        style = {
+            "background-color": "#f5f5dc"
+        }
     }
-});
+    $("#file_drop_area").css(style);
+}
+
+function setEvents() {
+    $("#file_drop_area").on("dragover", function (event) {
+        event.preventDefault();
+    });
+    $("#file_drop_area").on("dragenter", function (event) {
+        setDropAreaStyle(true);
+        event.preventDefault();
+    });
+    $("#file_drop_area").on("dragleave", function (event) {
+        setDropAreaStyle(false);
+        event.preventDefault();
+    });
+    $("#file_drop_area").on("drop", function (event) {
+        setDropAreaStyle(false);
+        event.preventDefault();
+        var files = event.originalEvent.dataTransfer.files;
+        openFiles(files);
+    });
+}
 
 function saveZip(imagedatas) {
     var zip = new JSZip();
@@ -47,12 +90,18 @@ function getSize(image, maxWidth, maxHeight) {
         width: maxWidth,
         height: maxHeight
     };
-    if (maxWidth > 0) {
+    if (maxWidth > 0 && image.width > maxWidth) {
+        alpha = ~~((image.width - maxWidth) * 0.04);
         size.scale = (Math.sqrt((maxWidth + alpha) / image.width));
         size.height = ~~((image.height / image.width) * maxWidth);
-    } else {
+    } else if (maxHeight > 0 && image.height > maxHeight) {
+        alpha = ~~((image.height - maxHeight) * 0.04);
         size.scale = (Math.sqrt((maxHeight + alpha) / image.height));
         size.width = ~~((image.width / image.height) * maxHeight);
+    } else {
+        size.width = image.width;
+        size.height = image.height;
+        size.scale = 1;
     }
     return size;
 }
@@ -104,7 +153,7 @@ function loadedImages(images) {
     var imagedatas = new Array();
     images.forEach(function (image, index) {
         var imagedata = scaleDown(image, MAX_WIDTH, MAX_HEIGHT);
-        var worker = new Worker("gamma.js");
+        var worker = new Worker("Scripts/Home/Gamma.js");
         worker.addEventListener('message', function (e) {
             var canvas = document.createElement("canvas");
             var context = canvas.getContext("2d");
@@ -116,7 +165,7 @@ function loadedImages(images) {
                 filename: image.filename
             });
             _progress++;
-            if (_progress == FILE_NUM) {
+            if (_progress == images.length) {
                 saveZip(imagedatas);
             }
             $("#progress").text(_progress);
