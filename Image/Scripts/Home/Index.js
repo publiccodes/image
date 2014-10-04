@@ -1,18 +1,40 @@
-﻿var FILE_NUM = 3;
-var MAX_WIDTH = 400;
-var MAX_HEIGHT = 0;
-var QUALITY = 0.8;
-var GAMMA = 3.0;
-
+﻿var _options = {
+    maxWidth: 0,
+    maxHeight: 0,
+    gamma: 1.0,
+    quality: 1.0
+}
 var _progress = 0;
 
 $(function () {
     setEvents();
 });
 
+function getOptions() {
+    if ($("#max_width").val() != 0) {
+        _options.maxWidth = Number($("#max_width").val());
+    } else if ($("#max_height").val() != 0) {
+        _options.maxHeight = Number($("#max_height").val());
+    } else {
+        _options.maxWidth = 0;
+        _options.maxHeight = 0;
+    }
+
+    _options.gamma = $("input[name='gamma']:checked").val();
+
+    if ($("#quality:checked").val()) {
+        _options.quality = 0.8;
+    } else {
+        _options.quality = 1.0;
+    }
+}
+
 function openFiles(files) {
+    getOptions();
+    $("#filenum").text(files.length);
     var count = 0;
     var images = new Array();
+    _progress = 0;
     $(files).each(function (index, file) {
         if (file.type == "image/jpeg") {
             var reader = new FileReader();
@@ -83,21 +105,21 @@ function saveZip(imagedatas) {
 }
 
 
-function getSize(image, maxWidth, maxHeight) {
+function getSize(image) {
     var alpha = 100;
     var size = {
         scale: 0,
-        width: maxWidth,
-        height: maxHeight
+        width: _options.maxWidth,
+        height: _options.maxHeight
     };
-    if (maxWidth > 0 && image.width > maxWidth) {
-        alpha = ~~((image.width - maxWidth) * 0.04);
-        size.scale = (Math.sqrt((maxWidth + alpha) / image.width));
-        size.height = ~~((image.height / image.width) * maxWidth);
-    } else if (maxHeight > 0 && image.height > maxHeight) {
-        alpha = ~~((image.height - maxHeight) * 0.04);
-        size.scale = (Math.sqrt((maxHeight + alpha) / image.height));
-        size.width = ~~((image.width / image.height) * maxHeight);
+    if (_options.maxWidth > 0 && image.width > _options.maxWidth) {
+        alpha = ~~((image.width - _options.maxWidth) * 0.04);
+        size.scale = (Math.sqrt((_options.maxWidth + alpha) / image.width));
+        size.height = ~~((image.height / image.width) * _options.maxWidth);
+    } else if (_options.maxHeight > 0 && image.height > _options.maxHeight) {
+        alpha = ~~((image.height - _options.maxHeight) * 0.04);
+        size.scale = (Math.sqrt((_options.maxHeight + alpha) / image.height));
+        size.width = ~~((image.width / image.height) * _options.maxHeight);
     } else {
         size.width = image.width;
         size.height = image.height;
@@ -106,9 +128,9 @@ function getSize(image, maxWidth, maxHeight) {
     return size;
 }
 
-function scaleDown(image, maxWidth, maxHeight) {
+function scaleDown(image) {
     var dw, dh, sw, sh;
-    var size = getSize(image, maxWidth, maxHeight);
+    var size = getSize(image);
     var canvas1 = document.createElement("canvas");
     var context1 = canvas1.getContext("2d");
     var canvas2 = document.createElement("canvas");
@@ -152,7 +174,7 @@ function scaleDown0(image, maxWidth, maxHeight) {
 function loadedImages(images) {
     var imagedatas = new Array();
     images.forEach(function (image, index) {
-        var imagedata = scaleDown(image, MAX_WIDTH, MAX_HEIGHT);
+        var imagedata = scaleDown(image);
         var worker = new Worker("Scripts/Home/Gamma.js");
         worker.addEventListener('message', function (e) {
             var canvas = document.createElement("canvas");
@@ -161,7 +183,7 @@ function loadedImages(images) {
             canvas.height = e.data.imagedata.height;
             context.putImageData(e.data.imagedata, 0, 0);
             imagedatas.push({
-                data: canvas.toDataURL("image/jpeg", QUALITY).slice(23),
+                data: canvas.toDataURL("image/jpeg", _options.quality).slice(23),
                 filename: image.filename
             });
             _progress++;
@@ -173,7 +195,7 @@ function loadedImages(images) {
         worker.postMessage({
             imagedata: imagedata,
             filename: image.filename,
-            gamma: GAMMA
+            gamma: _options.gamma
         });
     });
 }

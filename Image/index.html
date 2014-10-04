@@ -10,10 +10,20 @@
     <script src="Scripts/Home/Index.js"></script>
 </head>
 <body>
+    <div id="options_panel">
+        <p>
+            横幅：<input type="number" id="max_width" value="0" />、縦：<input type="number" id="max_height" value="0" />
+        </p>
+        <p>
+            明るさ０：<input type="radio" name="gamma" value="1.0" checked />、明るさ１：<input type="radio" name="gamma" value="2.0" />明るさ２：<input type="radio" name="gamma" value="3.0" />
+        </p>
+        <p>
+            軽量化：<input type="checkbox" id="quality" checked />
+        </p>
+    </div>
     <div id="file_drop_area">
         ここにドラッグ・アンド・ドロップ
     </div>
-    <a href="#" id="download" download="test.zip">ダウンロード</a>
-    <p>進捗：<span id="progress">0</span></p>
+    <p>進捗 ： <span id="progress">0</span> / <span id="filenum">0</span></p>
 </body>
 </html>
