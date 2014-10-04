@@ -1,4 +1,12 @@
-﻿#file_drop_area {
+﻿#ver_wrap {
+    background-color: cadetblue;
+    color: aliceblue;
+    padding: 5px 10px;
+    width: 480px;
+    border-radius: 3px;
+}
+
+#file_drop_area {
     background-color: beige;
     width: 500px;
     height: 200px;
