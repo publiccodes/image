@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="Content/Css/Home/Index.css" />
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
     <script src="Scripts/Common/jszip.min.js"></script>
+    <script src="Scripts/Common/resize.js"></script>
+    <script src="Scripts/Common/FileSaver.min.js"></script>
     <script src="Scripts/Home/Gamma.js"></script>
     <script src="Scripts/Home/Index.js"></script>
 </head>
@@ -16,7 +18,7 @@
     </div>
     <div id="options_panel">
         <p>
-            横幅：<input type="number" id="max_width" value="0" />、縦：<input type="number" id="max_height" value="0" />
+            横幅：<input type="number" id="max_width" value="500" />&nbsp;&nbsp;&nbsp;縦：<input type="number" id="max_height" value="0" />
         </p>
         <p>
             明るさ０：<input type="radio" name="gamma" value="1.0" checked />、明るさ１：<input type="radio" name="gamma" value="2.0" />明るさ２：<input type="radio" name="gamma" value="3.0" />
@@ -29,5 +31,6 @@
         ここにドラッグ・アンド・ドロップ
     </div>
     <p>進捗 ： <span id="progress">0</span> / <span id="filenum">0</span></p>
+    <a href="#" download="images.zip" id="download_button">ダウンロード</a>
 </body>
 </html>

@@ -1,4 +1,5 @@
 ﻿var _options = {
+    isResize: true,
     maxWidth: 0,
     maxHeight: 0,
     gamma: 1.0,
@@ -13,11 +14,14 @@ $(function () {
 function getOptions() {
     if ($("#max_width").val() != 0) {
         _options.maxWidth = Number($("#max_width").val());
+        _options.maxHeight = 0;
     } else if ($("#max_height").val() != 0) {
         _options.maxHeight = Number($("#max_height").val());
+        _options.maxWidth = 0;
     } else {
         _options.maxWidth = 0;
         _options.maxHeight = 0;
+        _options.isResize = false;
     }
 
     _options.gamma = $("input[name='gamma']:checked").val();
@@ -45,7 +49,11 @@ function openFiles(files) {
                     images.push(this);
                     count++;
                     if (count == files.length) {
-                        loadedImages(images);
+                        if (_options.isResize) {
+                            loadedImages(images);
+                        } else {
+                            loadedImages(images);
+                        }
                     }
                 });
                 image.src = e.target.result;
@@ -97,13 +105,8 @@ function saveZip(imagedatas) {
         zip.file(imagedata.filename, imagedata.data, { base64: true });
     });
     var content = zip.generate({ type: "blob" });
-    window.navigator.msSaveBlob(content, "images.zip");
-
-    // all browsers?
-    // include FileSaver.js
-    //saveAs(content, "example4.zip");
+    saveAs(content, "images.zip");
 }
-
 
 function getSize(image) {
     var alpha = 100;
@@ -112,25 +115,41 @@ function getSize(image) {
         width: _options.maxWidth,
         height: _options.maxHeight
     };
-    if (_options.maxWidth > 0 && image.width > _options.maxWidth) {
-        alpha = ~~((image.width - _options.maxWidth) * 0.04);
-        size.scale = (Math.sqrt((_options.maxWidth + alpha) / image.width));
-        size.height = ~~((image.height / image.width) * _options.maxWidth);
-    } else if (_options.maxHeight > 0 && image.height > _options.maxHeight) {
-        alpha = ~~((image.height - _options.maxHeight) * 0.04);
-        size.scale = (Math.sqrt((_options.maxHeight + alpha) / image.height));
-        size.width = ~~((image.width / image.height) * _options.maxHeight);
+
+    if (_options.maxWidth > 0) {
+        if (image.width > _options.maxWidth) {
+            alpha = ~~((image.width - _options.maxWidth) * 0.04);
+            size.scale = (Math.sqrt((_options.maxWidth + alpha) / image.width));
+            size.height = ~~((image.height / image.width) * _options.maxWidth);
+        } else if (image.width == _options.maxWidth) {
+            size.scale = 1;
+            size.width = image.width;
+            size.height = image.height;
+        } else {
+            size.width = _options.maxWidth;
+            size.height = ~~((image.height / image.width) * _options.maxWidth);
+            size.scale = 1;
+        }
     } else {
-        size.width = image.width;
-        size.height = image.height;
-        size.scale = 1;
+        if (image.height > _options.maxHeight) {
+            alpha = ~~((image.height - _options.maxHeight) * 0.04);
+            size.scale = (Math.sqrt((_options.maxHeight + alpha) / image.height));
+            size.width = ~~((image.width / image.height) * _options.maxHeight);
+        } else if (image.height == _options.maxHeight) {
+            size.scale = 1;
+            size.width = image.width;
+            size.height = image.height;
+        } else {
+            size.width = ~~((image.width / image.height) * _options.maxHeight);
+            size.height = _options.maxHeight;
+            size.scale = 1;
+        }
     }
     return size;
 }
 
-function scaleDown(image) {
+function scaleDown(image, size) {
     var dw, dh, sw, sh;
-    var size = getSize(image);
     var canvas1 = document.createElement("canvas");
     var context1 = canvas1.getContext("2d");
     var canvas2 = document.createElement("canvas");
@@ -155,28 +174,30 @@ function scaleDown(image) {
     return context1.getImageData(0, 0, size.width, size.height);
 }
 
-function scaleDown0(image, maxWidth, maxHeight) {
+function scaleUp(image, size) {
     var canvas = document.createElement("canvas");
     var context = canvas.getContext("2d");
-    canvas.width = 500;
-    canvas.height = 299;
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    canvas.width = size.width;
+    canvas.height = size.height;
+    context.drawImage(image, 0, 0, image.width, image.height, 0, 0, size.width, size.height);
+    return context.getImageData(0, 0, size.width, size.height);
+}
 
-    var flag = false;
-    context.msImageSmoothingEnabled = flag;
-    context.mozImageSmoothingEnabled = flag;
-    context.webkitImageSmoothingEnabled = flag;
-    context.imageSmoothingEnabled = flag;
-
-    return context.getImageData(0, 0, 500, 299);
+function scaleChange(image) {
+    var size = getSize(image);
+    if (size.scale < 1) {
+        return scaleDown(image, size);
+    } else {
+        return scaleUp(image, size);
+    }
 }
 
 function loadedImages(images) {
     var imagedatas = new Array();
     images.forEach(function (image, index) {
-        var imagedata = scaleDown(image);
+        var imagedata = scaleChange(image);
         var worker = new Worker("Scripts/Home/Gamma.js");
-        worker.addEventListener('message', function (e) {
+        worker.addEventListener("message", function (e) {
             var canvas = document.createElement("canvas");
             var context = canvas.getContext("2d");
             canvas.width = e.data.imagedata.width;
@@ -184,7 +205,7 @@ function loadedImages(images) {
             context.putImageData(e.data.imagedata, 0, 0);
             imagedatas.push({
                 data: canvas.toDataURL("image/jpeg", _options.quality).slice(23),
-                filename: image.filename
+                filename: "min_" + e.data.filename
             });
             _progress++;
             if (_progress == images.length) {
@@ -200,7 +221,103 @@ function loadedImages(images) {
     });
 }
 
+// #region resize.js バージョン
+
+function resize0(images) {
+    var imagedatas = new Array();
+    images.forEach(function (image, index) {
+        var filename = image.filename;
+        var originalWidth = image.width;
+        var originalHeight = image.height;
+        var newWidth;
+        var newHeight;
+        if (originalWidth > originalHeight) {
+            newWidth = _options.maxWidth;
+            newHeight = originalHeight * _options.maxWidth / originalWidth;
+        } else {
+            newWidth = originalWidth * _options.maxHeight / originalHeight;
+            newHeight = _options.maxHeight;
+        }
+        var useWebWorker = true;
+        var blendAlpha = true;
+        interpolationPass = true;
+        var resizer = new Resize(originalWidth, originalHeight, newWidth, newHeight, blendAlpha, interpolationPass, useWebWorker, function (frameBuffer) {
+            var canvasDst = document.createElement("canvas");
+            canvasDst.width = newWidth;
+            canvasDst.height = newHeight;
+            var contextDst = canvasDst.getContext("2d");
+            var imageBuffer = contextDst.createImageData(newWidth, newHeight);
+            var data = imageBuffer.data;
+            var length = data.length;
+            for (var x = 0; x < length; ++x) {
+                data[x] = frameBuffer[x] & 0xFF;
+            }
+            contextDst.putImageData(imageBuffer, 0, 0);
+            var imagedata = contextDst.getImageData(0, 0, newWidth, newHeight);
+            imagedata.filename = this.filename;
+            imagedatas.push(imagedata);
+            if (imagedatas.length == images.length) {
+                loadedImages2(imagedatas);
+            }
+        });
+        var canvasSrc = document.createElement("canvas");
+        canvasSrc.width = originalWidth;
+        canvasSrc.height = originalHeight;
+        var contextSrc = canvasSrc.getContext("2d");
+        contextSrc.drawImage(image, 0, 0, originalWidth, originalHeight);
+        var dataToScale = contextSrc.getImageData(0, 0, originalWidth, originalHeight).data;
+        resizer.filename = image.filename;;
+        resizer.resize(dataToScale);
+    });
+}
+
+function loadedImages2(imagedatas) {
+    var imagedatas2 = new Array();
+    imagedatas.forEach(function (imagedata, index) {
+        var worker = new Worker("Scripts/Home/Gamma.js");
+        worker.addEventListener('message', function (e) {
+            var canvas = document.createElement("canvas");
+            var context = canvas.getContext("2d");
+            canvas.width = e.data.imagedata.width;
+            canvas.height = e.data.imagedata.height;
+            context.putImageData(e.data.imagedata, 0, 0);
+            imagedatas2.push({
+                data: canvas.toDataURL("image/jpeg", _options.quality).slice(23),
+                filename: "min_" + e.data.filename
+            });
+            _progress++;
+            if (_progress == imagedatas.length) {
+                saveZip(imagedatas2);
+            }
+            $("#progress").text(_progress);
+        }, false);
+        worker.postMessage({
+            imagedata: imagedata,
+            filename: imagedata.filename,
+            gamma: _options.gamma
+        });
+    });
+}
+
+// #endregion
+
 // #region 物置
+
+function scaleDown0(image, maxWidth, maxHeight) {
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext("2d");
+    canvas.width = 500;
+    canvas.height = 299;
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    var flag = false;
+    context.msImageSmoothingEnabled = flag;
+    context.mozImageSmoothingEnabled = flag;
+    context.webkitImageSmoothingEnabled = flag;
+    context.imageSmoothingEnabled = flag;
+
+    return context.getImageData(0, 0, 500, 299);
+}
 
 /*
  * 輝度調整

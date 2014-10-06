@@ -63,6 +63,8 @@
     <Content Include="Scripts\Common\FileSaver.min.js" />
     <Content Include="Scripts\Common\jszip.js" />
     <Content Include="Scripts\Common\jszip.min.js" />
+    <Content Include="Scripts\Common\resize.js" />
+    <Content Include="Scripts\Common\resizeWorker.js" />
     <Content Include="Scripts\Home\Gamma.js" />
     <Content Include="Scripts\Home\Index.js" />
     <Content Include="Web.config" />
