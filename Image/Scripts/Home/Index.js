@@ -130,7 +130,7 @@ function getSize(image) {
             size.height = ~~((image.height / image.width) * _options.maxWidth);
             size.scale = 1;
         }
-    } else {
+    } else if (_options.maxHeight > 0) {
         if (image.height > _options.maxHeight) {
             alpha = ~~((image.height - _options.maxHeight) * 0.04);
             size.scale = (Math.sqrt((_options.maxHeight + alpha) / image.height));
@@ -144,6 +144,10 @@ function getSize(image) {
             size.height = _options.maxHeight;
             size.scale = 1;
         }
+    } else {
+        size.scale = 1;
+        size.width = image.width;
+        size.height = image.height;
     }
     return size;
 }
