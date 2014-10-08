@@ -139,7 +139,7 @@ function saveJpeg(imagedatas) {
     var canvas = imagedatas[0].canvas;
     canvas.toBlob(function (blob) {
         saveAs(blob, imagedatas[0].filename);
-    });
+    }, "image/jpeg", _options.quality);
 }
 
 function saveImages() {
