@@ -59,6 +59,7 @@
   <ItemGroup>
     <Content Include="Content\Css\Home\Index.css" />
     <Content Include="index.html" />
+    <Content Include="Scripts\Common\canvas-toBlob.js" />
     <Content Include="Scripts\Common\FileSaver.js" />
     <Content Include="Scripts\Common\FileSaver.min.js" />
     <Content Include="Scripts\Common\jszip.js" />

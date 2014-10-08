@@ -1,11 +1,10 @@
 ﻿var _options = {
-    isResize: true,
     maxWidth: 0,
     maxHeight: 0,
     gamma: 1.0,
     quality: 1.0
 }
-var _progress = 0;
+var _imagedatas = new Array();
 
 $(function () {
     setEvents();
@@ -27,18 +26,23 @@ function getOptions() {
     _options.gamma = $("input[name='gamma']:checked").val();
 
     if ($("#quality:checked").val()) {
-        _options.quality = 0.8;
+        _options.quality = 0.82;
     } else {
-        _options.quality = 1.0;
+        _options.quality = 0.90;
     }
+}
+
+function imagesLoadComplate() {
+    $("#images_load_complete").fadeIn(300);
 }
 
 function openFiles(files) {
     getOptions();
-    $("#filenum").text(files.length);
+    $("#filenum").text(0);
+    $("#progress").text(0);
+    $("#error_list").empty();
     var count = 0;
     var images = new Array();
-    _progress = 0;
     $(files).each(function (index, file) {
         if (file.type == "image/jpeg") {
             var reader = new FileReader();
@@ -49,11 +53,8 @@ function openFiles(files) {
                     images.push(this);
                     count++;
                     if (count == files.length) {
-                        if (_options.isResize) {
-                            loadedImages(images);
-                        } else {
-                            loadedImages(images);
-                        }
+                        imagesLoadComplate();
+                        loadedImages(images);
                     }
                 });
                 image.src = e.target.result;
@@ -61,8 +62,13 @@ function openFiles(files) {
             reader.readAsDataURL(file);
         } else {
             count++;
+            addErrorList(file.name)
         }
     });
+}
+
+function addErrorList(filename) {
+    $("#error_list").append(filename + "<br />");
 }
 
 function setDropAreaStyle(isEnter) {
@@ -97,15 +103,53 @@ function setEvents() {
         var files = event.originalEvent.dataTransfer.files;
         openFiles(files);
     });
+    $("#download_button").click(function () {
+        saveImages();
+    });
+}
+
+function downloadButtonStyle(isEnable) {
+    var styles = {};
+    if (isEnable) {
+        styles = {
+            "color": "#fff",
+            "background-color": "#05f",
+            "cursor": "pointer"
+        }
+    } else {
+        styles = {
+            "color": "#000",
+            "background-color": "#fff",
+            "cursor": "auto"
+        }
+    }
+    $("#download_button").css(styles);
 }
 
 function saveZip(imagedatas) {
     var zip = new JSZip();
     imagedatas.forEach(function (imagedata, index) {
-        zip.file(imagedata.filename, imagedata.data, { base64: true });
+        zip.file(imagedata.filename, imagedata.data.slice(23), { base64: true });
     });
     var content = zip.generate({ type: "blob" });
     saveAs(content, "images.zip");
+}
+
+function saveJpeg(imagedatas) {
+    var canvas = imagedatas[0].canvas;
+    canvas.toBlob(function (blob) {
+        saveAs(blob, imagedatas[0].filename);
+    });
+}
+
+function saveImages() {
+    if (_imagedatas.length == 1) {
+        saveJpeg(_imagedatas);
+    } else if (_imagedatas.length > 1) {
+        saveZip(_imagedatas);
+    } else {
+        // 何もしない
+    }
 }
 
 function getSize(image) {
@@ -197,7 +241,10 @@ function scaleChange(image) {
 }
 
 function loadedImages(images) {
-    var imagedatas = new Array();
+    var progressVal = 0;
+    $("#filenum").text(images.length);
+    downloadButtonStyle(false);
+    _imagedatas = new Array();
     images.forEach(function (image, index) {
         var imagedata = scaleChange(image);
         var worker = new Worker("Scripts/Home/Gamma.js");
@@ -207,15 +254,15 @@ function loadedImages(images) {
             canvas.width = e.data.imagedata.width;
             canvas.height = e.data.imagedata.height;
             context.putImageData(e.data.imagedata, 0, 0);
-            imagedatas.push({
-                data: canvas.toDataURL("image/jpeg", _options.quality).slice(23),
-                filename: "min_" + e.data.filename
+            _imagedatas.push({
+                data: canvas.toDataURL("image/jpeg", _options.quality),
+                filename: e.data.filename,
+                canvas: canvas
             });
-            _progress++;
-            if (_progress == images.length) {
-                saveZip(imagedatas);
+            progressVal++;
+            if (progress(progressVal, images.length) == images.length) {
+                downloadButtonStyle(true);
             }
-            $("#progress").text(_progress);
         }, false);
         worker.postMessage({
             imagedata: imagedata,
@@ -223,6 +270,17 @@ function loadedImages(images) {
             gamma: _options.gamma
         });
     });
+}
+
+function progress(val, imageNum) {
+    $("#progress").text(val);
+    var w = ~~((val / imageNum) * 100) * 3;
+    $("#progress_val").animate({ "width": w + "px" }, 50);
+    return val;
+}
+
+function setProgressBar(val, imageNum) {
+
 }
 
 // #region resize.js バージョン

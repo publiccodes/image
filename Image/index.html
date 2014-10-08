@@ -9,16 +9,61 @@
     <script src="Scripts/Common/jszip.min.js"></script>
     <script src="Scripts/Common/resize.js"></script>
     <script src="Scripts/Common/FileSaver.min.js"></script>
+    <script src="Scripts/Common/canvas-toBlob.js"></script>
     <script src="Scripts/Home/Gamma.js"></script>
     <script src="Scripts/Home/Index.js"></script>
+    <style>
+        #download_button {
+            padding: 5px;
+            border: 1px solid #eee;
+            width: 100px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        #images_load_complete {
+            background-color: #64c21b;
+            padding: 5px;
+            display: none;
+            width: 300px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        #error_list {
+            width: 300px;
+            background-color: #fee;
+            color: #f00;
+            padding: 5px;
+        }
+
+        /* プログレスバー */
+        #progress_bar_wrap {
+            width: 300px;
+            height: 2px;
+            background-color: azure;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        #progress_val {
+            height: 2px;
+            width: 0;
+            background-color: #0094ff;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
 </head>
 <body>
     <div id="ver_wrap">
-        ver:1.0
+        ver:1.3
     </div>
     <div id="options_panel">
         <p>
-            横幅：<input type="number" id="max_width" value="500" />&nbsp;&nbsp;&nbsp;縦：<input type="number" id="max_height" value="0" />
+            横幅：<input type="number" id="max_width" value="0" />&nbsp;&nbsp;&nbsp;縦：<input type="number" id="max_height" value="0" />
         </p>
         <p>
             明るさ０：<input type="radio" name="gamma" value="1.0" checked />、明るさ１：<input type="radio" name="gamma" value="2.0" />明るさ２：<input type="radio" name="gamma" value="3.0" />
@@ -31,6 +76,13 @@
         ここにドラッグ・アンド・ドロップ
     </div>
     <p>進捗 ： <span id="progress">0</span> / <span id="filenum">0</span></p>
-    <a href="#" download="images.zip" id="download_button">ダウンロード</a>
+    <div>
+        <div id="progress_bar_wrap"><span id="progress_val"></span></div>
+    </div>
+    <div id="images_load_complete">画像読み込み完了</div>
+    <div id="download_button">ダウンロード</div>
+    <div id="error_list">
+        <span>エラー ファイル リスト</span>
+    </div>
 </body>
 </html>
