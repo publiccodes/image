@@ -49,7 +49,7 @@ function getOptions() {
     _options.doResize = !$("#size_no_change input").is(":checked");
     _options.gamma = $("input[name='gamma']:checked").val();
     if ($("#quality_radio_02 input").is(":checked")) {
-        _options.quality = 0.82;
+        _options.quality = 0.80;
     } else {
         _options.quality = 0.90;
     }
