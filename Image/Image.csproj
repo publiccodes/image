@@ -58,22 +58,70 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\Css\Home\Index.css" />
+    <Content Include="Content\Css\Home\Index.min.css">
+      <DependentUpon>Index.css</DependentUpon>
+    </Content>
+    <Content Include="Content\Images\Home\droparea.png" />
+    <Content Include="Content\Images\Home\flow01.png" />
+    <Content Include="Content\Images\Home\flow02.png" />
+    <Content Include="Content\Images\Home\flow03.png" />
+    <Content Include="Content\Images\Home\images.png" />
     <Content Include="index.html" />
-    <Content Include="Scripts\Common\canvas-toBlob.js" />
-    <Content Include="Scripts\Common\FileSaver.js" />
-    <Content Include="Scripts\Common\FileSaver.min.js" />
-    <Content Include="Scripts\Common\jszip.js" />
-    <Content Include="Scripts\Common\jszip.min.js" />
-    <Content Include="Scripts\Common\resize.js" />
-    <Content Include="Scripts\Common\resizeWorker.js" />
+    <Content Include="Scripts\Home\canvas-toBlob.js" />
+    <Content Include="Scripts\Home\canvas-toBlob.min.js">
+      <DependentUpon>canvas-toBlob.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\Home\FileSaver.js" />
+    <Content Include="Scripts\Home\FileSaver.min.js">
+      <DependentUpon>FileSaver.js</DependentUpon>
+    </Content>
     <Content Include="Scripts\Home\Gamma.js" />
+    <Content Include="Scripts\Home\Gamma.min.js">
+      <DependentUpon>Gamma.js</DependentUpon>
+    </Content>
     <Content Include="Scripts\Home\Index.js" />
+    <Content Include="Scripts\Home\Index.min.js">
+      <DependentUpon>Index.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\Home\jszip.js" />
+    <Content Include="Scripts\Home\jszip.min.js">
+      <DependentUpon>jszip.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\Home\resize.js" />
+    <Content Include="Scripts\Home\resize.min.js">
+      <DependentUpon>resize.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\Home\resizeWorker.js" />
+    <Content Include="Scripts\Home\resizeWorker.min.js">
+      <DependentUpon>resizeWorker.js</DependentUpon>
+    </Content>
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Scripts\Home\canvas-toBlob.min.js.map">
+      <DependentUpon>canvas-toBlob.min.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\Home\FileSaver.min.js.map">
+      <DependentUpon>FileSaver.min.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\Home\Gamma.min.js.map">
+      <DependentUpon>Gamma.min.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\Home\Index.min.js.map">
+      <DependentUpon>Index.min.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\Home\jszip.min.js.map">
+      <DependentUpon>jszip.min.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\Home\resize.min.js.map">
+      <DependentUpon>resize.min.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\Home\resizeWorker.min.js.map">
+      <DependentUpon>resizeWorker.min.js</DependentUpon>
+    </Content>
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
@@ -81,9 +129,7 @@
       <DependentUpon>Web.config</DependentUpon>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Content\Images\Home\" />
-  </ItemGroup>
+  <ItemGroup />
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>

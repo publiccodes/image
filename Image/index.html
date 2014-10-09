@@ -3,86 +3,74 @@
 <head>
     <meta charset="utf-8" />
     <meta name="robots" content="noindex,nofollow" />
-    <title>画像処理サイト</title>
-    <link rel="stylesheet" href="Content/Css/Home/Index.css" />
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-    <script src="Scripts/Common/jszip.min.js"></script>
-    <script src="Scripts/Common/resize.js"></script>
-    <script src="Scripts/Common/FileSaver.min.js"></script>
-    <script src="Scripts/Common/canvas-toBlob.js"></script>
-    <script src="Scripts/Home/Gamma.js"></script>
-    <script src="Scripts/Home/Index.js"></script>
-    <style>
-        #download_button {
-            padding: 5px;
-            border: 1px solid #eee;
-            width: 100px;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        #images_load_complete {
-            background-color: #64c21b;
-            padding: 5px;
-            display: none;
-            width: 300px;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        #error_list {
-            width: 300px;
-            background-color: #fee;
-            color: #f00;
-            padding: 5px;
-        }
-
-        /* プログレスバー */
-        #progress_bar_wrap {
-            width: 300px;
-            height: 2px;
-            background-color: azure;
-            margin-bottom: 10px;
-            position: relative;
-        }
-
-        #progress_val {
-            height: 2px;
-            width: 0;
-            background-color: #0094ff;
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-    </style>
+    <title>画像一括軽量化・サイズ変更・明るさ調整ツール</title>
+    <link rel="stylesheet" href="Content/Css/Home/Index.min.css" />
 </head>
 <body>
-    <div id="ver_wrap">
-        ver:1.3
-    </div>
-    <div id="options_panel">
-        <p>
-            横幅：<input type="number" id="max_width" value="0" />&nbsp;&nbsp;&nbsp;縦：<input type="number" id="max_height" value="0" />
-        </p>
-        <p>
-            明るさ０：<input type="radio" name="gamma" value="1.0" checked />、明るさ１：<input type="radio" name="gamma" value="2.0" />明るさ２：<input type="radio" name="gamma" value="3.0" />
-        </p>
-        <p>
-            軽量化：<input type="checkbox" id="quality" checked />
-        </p>
-    </div>
-    <div id="file_drop_area">
-        ここにドラッグ・アンド・ドロップ
-    </div>
-    <p>進捗 ： <span id="progress">0</span> / <span id="filenum">0</span></p>
-    <div>
-        <div id="progress_bar_wrap"><span id="progress_val"></span></div>
-    </div>
-    <div id="images_load_complete">画像読み込み完了</div>
-    <div id="download_button">ダウンロード</div>
-    <div id="error_list">
-        <span>エラー ファイル リスト</span>
-    </div>
+    <header>
+        <div>
+            <h1>画像一括軽量化・サイズ変更・明るさ調整ツール</h1>
+            <div id="logo" class="bg"></div>
+            <div id="powerdby" class="bg"></div>
+        </div>
+    </header>
+    <section id="tool_wrap">
+        <div id="options_panel">
+            <div id="option_01" class="options">
+                <div id="option_01_title" class="bg"></div>
+                <label id="size_no_change" class="bg"><input type="checkbox" checked /></label>
+                <div id="textbox_width" class="bg textbox_wrap">
+                    <input type="number" step="50" min="0" value="0" />
+                </div>
+                <div id="textbox_height" class="bg textbox_wrap">
+                    <input type="number" step="50" min="0" value="0" />
+                </div>
+            </div>
+            <div id="option_02" class="options">
+                <div id="option_02_title" class="bg"></div>
+                <label id="gamma_radio_01" class="bg gamma_radio"><input type="radio" data-id="01" data-bg-x="-65px" name="gamma" value="1.0" checked /></label>
+                <label id="gamma_radio_02" class="bg gamma_radio"><input type="radio" data-id="02" data-bg-x="-153px" name="gamma" value="2.0" /></label>
+                <label id="gamma_radio_03" class="bg gamma_radio"><input type="radio" data-id="03" data-bg-x="-255px" name="gamma" value="3.0" /></label>
+            </div>
+            <div id="option_03" class="options">
+                <div id="option_03_title" class="bg"></div>
+                <label id="quality_radio_01" class="bg quality_radio"><input type="radio" data-id="01" data-bg-x="-65px" name="quality" checked /></label>
+                <label id="quality_radio_02" class="bg quality_radio"><input type="radio" data-id="02" data-bg-x="-326px" name="quality" /></label>
+            </div>
+        </div>
+        <div id="file_drop_area">
+            <div id="dammy_input"></div>
+            <input id="file_select_button" type="file" multiple accept="image/jpeg" />
+            <div id="progress_wrap">
+                <p>処理中...</p>
+                <div id="progress_bar"><span></span></div>
+            </div>
+        </div>
+        <button id="download_button" class="bg"></button>
+        <div id="wait_create_files_mask">
+            <div id="wait_create_files">
+                ファイルを作成中です。
+            </div>
+        </div>
+    </section>
+    <section id="flow_wrap">
+        <h2>画像一括軽量化・サイズ変更・明るさ調整ツールの使い方</h2>
+        <img src="/Content/Images/Home/flow01.png" alt="①サイズを変える" />
+        <img src="/Content/Images/Home/flow02.png" alt="②明るさを選ぶ" />
+        <img src="/Content/Images/Home/flow03.png" alt="③写真を選ぶ" />
+    </section>
+    <footer>
+        <div>
+            <p>【ご利用の際の注意事項】</p>
+            <p>本サービスはユーザー各位の自己責任でご利用ください。本サービスを利用することではっせいした損害などに対しては、サービス提供者は一切の責任を負いかねます。本サービスは、メンテナンスなどのため予告なく停止する可能性があります。</p>
+        </div>
+    </footer>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="Scripts/Home/jszip.min.js"></script>
+    <script src="Scripts/Home/resize.min.js"></script>
+    <script src="Scripts/Home/FileSaver.min.js"></script>
+    <script src="Scripts/Home/canvas-toBlob.min.js"></script>
+    <script src="Scripts/Home/Gamma.min.js"></script>
+    <script src="Scripts/Home/Index.min.js"></script>
 </body>
 </html>

@@ -1,17 +1,353 @@
-﻿#ver_wrap {
-    background-color: cadetblue;
-    color: aliceblue;
-    padding: 5px 10px;
-    width: 480px;
-    border-radius: 3px;
+﻿body, header, h1, h2, section, p, footer {
+    margin: 0;
+    padding: 0;
 }
 
+.bg {
+    background-image: url("/Content/Images/Home/images.png");
+    background-repeat: no-repeat;
+}
+
+body {
+    border: 20px solid #388eb1;
+    border-width: 20px 0 0;
+}
+
+/* #region header */
+
+header {
+    margin: 0 0 50px;
+    padding: 0;
+    background-color: #4dbcea;
+}
+
+    header div {
+        width: 640px;
+        height: 105px;
+        margin: 0 auto;
+        position: relative;
+    }
+
+h1 {
+    position: absolute;
+    top: 45px;
+    left: 80px;
+    color: #fff;
+    font-size: 24px;
+}
+
+#logo {
+    position: absolute;
+    top: 20px;
+    left: 10px;
+    width: 65px;
+    height: 78px;
+}
+
+#powerdby {
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+    background-position: -65px 0;
+    width: 207px;
+    height: 22px;
+}
+
+/* #endregion */
+
+/* #region tool_wrap */
+
+#tool_wrap {
+    width: 640px;
+    margin: 0 auto;
+}
+
+/* #region サイズ調整 */
+
+#option_01 {
+    margin-bottom: 30px;
+}
+
+#option_01_title {
+    display: inline-block;
+    width: 120px;
+    height: 40px;
+    background-position: 0 -103px;
+}
+
+#size_no_change {
+    background-position: -65px -45px;
+    width: 88px;
+    height: 23px;
+    display: inline-block;
+    margin: 0 0 6px 30px;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+    #size_no_change input {
+        cursor: pointer;
+        opacity: 0;
+    }
+
+.textbox_wrap {
+    position: relative;
+    display: inline-block;
+    width: 167px;
+    height: 25px;
+    margin: 0 0 5px 25px;
+}
+
+#textbox_width {
+    background-position: -167px -78px;
+}
+
+#textbox_height {
+    background-position: 0 -78px;
+}
+
+.textbox_wrap input {
+    position: absolute;
+    top: 3px;
+    right: 22px;
+    width: 60px;
+    height: 17px;
+    line-height: 17px;
+    text-align: center;
+    border: none;
+    background-color: none;
+}
+
+/* #endregion */
+
+/* #region 明るさ */
+#option_02 {
+    margin-bottom: 30px;
+}
+
+#option_02_title {
+    display: inline-block;
+    width: 120px;
+    height: 40px;
+    background-position: -120px -103px;
+}
+
+.gamma_radio {
+    height: 23px;
+    display: inline-block;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+    .gamma_radio input {
+        cursor: pointer;
+        opacity: 0;
+    }
+
+#gamma_radio_01 {
+    margin: 0 0 6px 30px;
+    width: 88px;
+    background-position: -65px -45px;
+}
+
+#gamma_radio_02 {
+    margin: 0 0 6px 60px;
+    width: 102px;
+    background-position: -153px -22px;
+}
+
+#gamma_radio_03 {
+    margin: 0 0 6px 55px;
+    width: 71px;
+    background-position: -255px -22px;
+}
+
+
+/* #endregion */
+
+/* #region 軽量化 */
+#option_03 {
+    margin-bottom: 30px;
+}
+
+#option_03_title {
+    display: inline-block;
+    width: 120px;
+    height: 40px;
+    background-position: -240px -103px;
+}
+
+.quality_radio {
+    height: 23px;
+    display: inline-block;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+    .quality_radio input {
+        cursor: pointer;
+        opacity: 0;
+    }
+
+#quality_radio_01 {
+    margin: 0 0 6px 30px;
+    width: 88px;
+    background-position: -65px -45px;
+}
+
+#quality_radio_02 {
+    margin: 0 0 6px 60px;
+    width: 103px;
+    background-position: -326px -22px;
+}
+
+/* #endregion*/
+
+/* #region file_drop_area */
+
 #file_drop_area {
-    background-color: beige;
+    position: relative;
+    width: 640px;
+    height: 370px;
+    background-image: url("/Content/Images/Home/droparea.png");
+    margin: 0 0 50px;
+}
+
+    #file_drop_area input {
+        display: none;
+    }
+
+#dammy_input {
+    position: absolute;
+    width: 110px;
+    height: 30px;
+    background-color: #fff;
+    top: 265px;
+    left: 260px;
+    opacity: 0;
+    cursor: pointer;
+}
+
+    #dammy_input:hover {
+        opacity: 0.2;
+    }
+
+/* 進捗状況 */
+#progress_wrap {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 640px;
+    height: 370px;
+    background-color: rgba(255,255,255,0.8);
+    display: none;
+}
+
+    #progress_wrap p {
+        position: absolute;
+        top: 140px;
+        left: 255px;
+        text-align: center;
+        width: 100px;
+        padding: 10px;
+        font-weight: bold;
+        font-size: 22px;
+        color: #333;
+    }
+
+#progress_bar {
+    position: absolute;
+    top: 50%;
+    left: 70px;
     width: 500px;
-    height: 200px;
-    border: 3px dashed #aaa;
+    height: 5px;
+    background-color: #bde8df;
+}
+
+    #progress_bar span {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: block;
+        background-color: #4dbcea;
+        width: 0;
+        height: 5px;
+    }
+
+
+/* #endregion */
+
+/* #region ダウンロードボタン */
+
+#download_button {
+    border: none;
+    background-position: 0 -143px;
+    width: 438px;
+    height: 70px;
+    margin: 0 auto 50px;
+    display: block;
+}
+
+/* #endregion */
+
+#wait_create_files_mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.8);
+    display: none;
+}
+
+#wait_create_files {
+    z-index: 10000;
+    position: absolute;
     text-align: center;
     font-size: 22px;
-    line-height: 200px;
+    top: 50%;
+    left: 50%;
+    width: 500px;
+    height: 100px;
+    line-height: 100px;
+    margin: -50px 0 0 -250px;
+    background-color: rgba(255,255,255,0.2);
+    border: 1px solid #aaa;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.7);
 }
+
+/* #endregion */
+
+/* #region flow */
+
+#flow_wrap {
+    text-align: center;
+    background-color: #bde8df;
+    padding: 0 0 30px;
+}
+
+h2 {
+    padding: 30px 0;
+    font-size: 24px;
+    color: #388eb1;
+}
+
+/* #endregion*/
+
+/* #region footer */
+
+footer {
+    background-color: #388eb1;
+    padding: 40px 0;
+    font-size: 12px;
+    color: #fff;
+    line-height: 16px;
+}
+
+    footer div {
+        width: 640px;
+        margin: 0 auto;
+    }
+
+/* #endregion */

@@ -1,4 +1,5 @@
 ﻿var _options = {
+    doResize: false,
     maxWidth: 0,
     maxHeight: 0,
     gamma: 1.0,
@@ -7,40 +8,56 @@
 var _imagedatas = new Array();
 
 $(function () {
+    initOptions();
     setEvents();
 });
 
+function resetSizeOptions() {
+    $("#size_no_change input").attr("checked", true);
+    $("#size_no_change").css("background-position", "-65px -45px");
+    $("#textbox_width input").val(0);
+    $("#textbox_height input").val(0);
+}
+
+function initOptions() {
+    $("#size_no_change input").attr("checked", true);
+    $("#textbox_width input").val(0);
+    $("#textbox_height input").val(0);
+
+    $("#gamma_radio_01 input").attr("checked", true);
+    $("#gamma_radio_02 input").attr("checked", false);
+    $("#gamma_radio_03 input").attr("checked", false);
+
+    $("#quality_radio_01 input").attr("checked", true);
+    $("#quality_radio_02 input").attr("checked", false);
+}
+
 function getOptions() {
-    if ($("#max_width").val() != 0) {
-        _options.maxWidth = Number($("#max_width").val());
+    var width = $("#textbox_width input").val();
+    var height = $("#textbox_height input").val();
+    if (!isNaN(width) && width != 0) {
+        _options.maxWidth = width;
         _options.maxHeight = 0;
-    } else if ($("#max_height").val() != 0) {
-        _options.maxHeight = Number($("#max_height").val());
+    } else if (!isNaN(height) && height != 0) {
+        _options.maxHeight = height;
         _options.maxWidth = 0;
     } else {
+        resetSizeOptions();
         _options.maxWidth = 0;
         _options.maxHeight = 0;
-        _options.isResize = false;
     }
-
+    _options.doResize = !$("#size_no_change input").is(":checked");
     _options.gamma = $("input[name='gamma']:checked").val();
-
-    if ($("#quality:checked").val()) {
+    if ($("#quality_radio_02 input").is(":checked")) {
         _options.quality = 0.82;
     } else {
         _options.quality = 0.90;
     }
 }
 
-function imagesLoadComplate() {
-    $("#images_load_complete").fadeIn(300);
-}
-
 function openFiles(files) {
+    dispProgressWrap(true);
     getOptions();
-    $("#filenum").text(0);
-    $("#progress").text(0);
-    $("#error_list").empty();
     var count = 0;
     var images = new Array();
     $(files).each(function (index, file) {
@@ -53,7 +70,6 @@ function openFiles(files) {
                     images.push(this);
                     count++;
                     if (count == files.length) {
-                        imagesLoadComplate();
                         loadedImages(images);
                     }
                 });
@@ -62,24 +78,19 @@ function openFiles(files) {
             reader.readAsDataURL(file);
         } else {
             count++;
-            addErrorList(file.name)
         }
     });
-}
-
-function addErrorList(filename) {
-    $("#error_list").append(filename + "<br />");
 }
 
 function setDropAreaStyle(isEnter) {
     var style = {}
     if (isEnter) {
         style = {
-            "background-color": "#fafafa"
+            "background-position": "left bottom"
         }
     } else {
         style = {
-            "background-color": "#f5f5dc"
+            "background-position": "left top"
         }
     }
     $("#file_drop_area").css(style);
@@ -103,8 +114,60 @@ function setEvents() {
         var files = event.originalEvent.dataTransfer.files;
         openFiles(files);
     });
+    $("#dammy_input").click(function () {
+        $("#file_select_button").click();
+    });
+    $("#file_select_button").change(function (event) {
+        setDropAreaStyle(false);
+        openFiles(this.files);
+    });
     $("#download_button").click(function () {
         saveImages();
+    });
+
+    $("#size_no_change input").change(function () {
+        if ($(this).is(":checked")) {
+            $("#size_no_change").css("background-position", "-65px -45px");
+        } else {
+            $("#size_no_change").css("background-position", "-65px -22px");
+        }
+    });
+    $("#textbox_width input").change(function () {
+        $("#size_no_change input").attr("checked", false);
+        $("#size_no_change").css("background-position", "-65px -22px");
+        $("#textbox_height input").val(0);
+    });
+    $("#textbox_width input").keydown(function () {
+        $("#size_no_change input").attr("checked", false);
+        $("#size_no_change").css("background-position", "-65px -22px");
+        $("#textbox_height input").val(0);
+    });
+    $("#textbox_height input").change(function () {
+        $("#size_no_change input").attr("checked", false);
+        $("#size_no_change").css("background-position", "-65px -22px");
+        $("#textbox_width input").val(0);
+    });
+    $("#textbox_height input").keydown(function () {
+        $("#size_no_change input").attr("checked", false);
+        $("#size_no_change").css("background-position", "-65px -22px");
+        $("#textbox_width input").val(0);
+    });
+
+    $("#option_02 input").change(function () {
+        var id = $(this).data("id");
+        var bgX = $(this).data("bgX");
+        $("#gamma_radio_01").css("background-position", "-65px -22px");
+        $("#gamma_radio_02").css("background-position", "-153px -22px");
+        $("#gamma_radio_03").css("background-position", "-255px -22px");
+        $("#gamma_radio_" + id).css("background-position", bgX + " -45px");
+    });
+
+    $("#option_03 input").change(function () {
+        var id = $(this).data("id");
+        var bgX = $(this).data("bgX");
+        $("#quality_radio_01").css("background-position", "-65px -22px");
+        $("#quality_radio_02").css("background-position", "-326px -22px");
+        $("#quality_radio_" + id).css("background-position", bgX + " -45px");
     });
 }
 
@@ -112,18 +175,21 @@ function downloadButtonStyle(isEnable) {
     var styles = {};
     if (isEnable) {
         styles = {
-            "color": "#fff",
-            "background-color": "#05f",
+            "background-position": "left -213px",
             "cursor": "pointer"
         }
     } else {
         styles = {
-            "color": "#000",
-            "background-color": "#fff",
+            "background-position": "left -143px",
             "cursor": "auto"
         }
     }
     $("#download_button").css(styles);
+    $("#download_button").hover(function () {
+        $(this).css("background-position", "left -283px");
+    }, function () {
+        $(this).css("background-position", "left -213px");
+    });
 }
 
 function saveZip(imagedatas) {
@@ -143,13 +209,17 @@ function saveJpeg(imagedatas) {
 }
 
 function saveImages() {
-    if (_imagedatas.length == 1) {
-        saveJpeg(_imagedatas);
-    } else if (_imagedatas.length > 1) {
-        saveZip(_imagedatas);
-    } else {
-        // 何もしない
-    }
+    $("#wait_create_files_mask").fadeIn(100);
+    setTimeout(function () {
+        if (_imagedatas.length == 1) {
+            saveJpeg(_imagedatas);
+        } else if (_imagedatas.length > 1) {
+            saveZip(_imagedatas);
+        } else {
+            // 何もしない
+        }
+        $("#wait_create_files_mask").fadeOut(100);
+    }, 100);
 }
 
 function getSize(image) {
@@ -159,34 +229,35 @@ function getSize(image) {
         width: _options.maxWidth,
         height: _options.maxHeight
     };
-
-    if (_options.maxWidth > 0) {
-        if (image.width > _options.maxWidth) {
-            alpha = ~~((image.width - _options.maxWidth) * 0.04);
-            size.scale = (Math.sqrt((_options.maxWidth + alpha) / image.width));
-            size.height = ~~((image.height / image.width) * _options.maxWidth);
-        } else if (image.width == _options.maxWidth) {
-            size.scale = 1;
-            size.width = image.width;
-            size.height = image.height;
+    if (_options.doResize) {
+        if (_options.maxWidth > 0) {
+            if (image.width > _options.maxWidth) {
+                alpha = ~~((image.width - _options.maxWidth) * 0.04);
+                size.scale = (Math.sqrt((_options.maxWidth + alpha) / image.width));
+                size.height = ~~((image.height / image.width) * _options.maxWidth);
+            } else if (image.width == _options.maxWidth) {
+                size.scale = 1;
+                size.width = image.width;
+                size.height = image.height;
+            } else {
+                size.width = _options.maxWidth;
+                size.height = ~~((image.height / image.width) * _options.maxWidth);
+                size.scale = 1;
+            }
         } else {
-            size.width = _options.maxWidth;
-            size.height = ~~((image.height / image.width) * _options.maxWidth);
-            size.scale = 1;
-        }
-    } else if (_options.maxHeight > 0) {
-        if (image.height > _options.maxHeight) {
-            alpha = ~~((image.height - _options.maxHeight) * 0.04);
-            size.scale = (Math.sqrt((_options.maxHeight + alpha) / image.height));
-            size.width = ~~((image.width / image.height) * _options.maxHeight);
-        } else if (image.height == _options.maxHeight) {
-            size.scale = 1;
-            size.width = image.width;
-            size.height = image.height;
-        } else {
-            size.width = ~~((image.width / image.height) * _options.maxHeight);
-            size.height = _options.maxHeight;
-            size.scale = 1;
+            if (image.height > _options.maxHeight) {
+                alpha = ~~((image.height - _options.maxHeight) * 0.04);
+                size.scale = (Math.sqrt((_options.maxHeight + alpha) / image.height));
+                size.width = ~~((image.width / image.height) * _options.maxHeight);
+            } else if (image.height == _options.maxHeight) {
+                size.scale = 1;
+                size.width = image.width;
+                size.height = image.height;
+            } else {
+                size.width = ~~((image.width / image.height) * _options.maxHeight);
+                size.height = _options.maxHeight;
+                size.scale = 1;
+            }
         }
     } else {
         size.scale = 1;
@@ -228,7 +299,8 @@ function scaleUp(image, size) {
     canvas.width = size.width;
     canvas.height = size.height;
     context.drawImage(image, 0, 0, image.width, image.height, 0, 0, size.width, size.height);
-    return context.getImageData(0, 0, size.width, size.height);
+    var imagedata = context.getImageData(0, 0, size.width, size.height);
+    return imagedata;
 }
 
 function scaleChange(image) {
@@ -242,27 +314,13 @@ function scaleChange(image) {
 
 function loadedImages(images) {
     var progressVal = 0;
-    $("#filenum").text(images.length);
     downloadButtonStyle(false);
     _imagedatas = new Array();
     images.forEach(function (image, index) {
         var imagedata = scaleChange(image);
         var worker = new Worker("Scripts/Home/Gamma.js");
         worker.addEventListener("message", function (e) {
-            var canvas = document.createElement("canvas");
-            var context = canvas.getContext("2d");
-            canvas.width = e.data.imagedata.width;
-            canvas.height = e.data.imagedata.height;
-            context.putImageData(e.data.imagedata, 0, 0);
-            _imagedatas.push({
-                data: canvas.toDataURL("image/jpeg", _options.quality),
-                filename: e.data.filename,
-                canvas: canvas
-            });
-            progressVal++;
-            if (progress(progressVal, images.length) == images.length) {
-                downloadButtonStyle(true);
-            }
+            addImagedatas(e.data.imagedata, e.data.filename, ++progressVal, images.length);
         }, false);
         worker.postMessage({
             imagedata: imagedata,
@@ -272,11 +330,36 @@ function loadedImages(images) {
     });
 }
 
+function addImagedatas(imagedata, filename, progressVal, imagesLength) {
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext("2d");
+    canvas.width = imagedata.width;
+    canvas.height = imagedata.height;
+    context.putImageData(imagedata, 0, 0);
+    _imagedatas.push({
+        data: canvas.toDataURL("image/jpeg", _options.quality),
+        filename: filename,
+        canvas: canvas
+    });
+    if (progress(progressVal, imagesLength)) {
+        downloadButtonStyle(true);
+        dispProgressWrap(false);
+    }
+}
+
+function dispProgressWrap(visible) {
+    if (visible) {
+        $("#progress_wrap").show();
+        $("#progress_bar span").css("width", "0px");
+    } else {
+        $("#progress_wrap").fadeOut(100);
+    }
+}
+
 function progress(val, imageNum) {
-    $("#progress").text(val);
-    var w = ~~((val / imageNum) * 100) * 3;
-    $("#progress_val").animate({ "width": w + "px" }, 50);
-    return val;
+    var w = ~~((val / imageNum) * 100) * 5;
+    $("#progress_bar span").animate({ "width": w + "px" }, 50);
+    return (val >= imageNum);
 }
 
 function setProgressBar(val, imageNum) {
