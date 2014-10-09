@@ -4,7 +4,7 @@
 }
 
 .bg {
-    background-image: url("/Content/Images/Home/images.png");
+    background-image: url("../../Images/Home/images.png");
     background-repeat: no-repeat;
 }
 
@@ -209,7 +209,7 @@ h1 {
     position: relative;
     width: 640px;
     height: 370px;
-    background-image: url("/Content/Images/Home/droparea.png");
+    background-image: url("../../Images/Home/droparea.png");
     margin: 0 0 50px;
 }
 
