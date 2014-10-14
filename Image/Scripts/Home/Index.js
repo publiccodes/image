@@ -1,4 +1,5 @@
 ﻿var _options = {
+    noAction: false,
     doResize: false,
     maxWidth: 0,
     maxHeight: 0,
@@ -8,9 +9,14 @@
 var _imagedatas = new Array();
 
 $(function () {
+    setNotes();
     initOptions();
     setEvents();
 });
+
+function setNotes() {
+    $("#notes").load("/Content/Text/Notes.txt");
+}
 
 function resetSizeOptions() {
     $("#size_no_change input").attr("checked", true);
@@ -33,6 +39,7 @@ function initOptions() {
 }
 
 function getOptions() {
+    _options.noAction = false;
     var width = $("#textbox_width input").val();
     var height = $("#textbox_height input").val();
     if (!isNaN(width) && width != 0) {
@@ -51,7 +58,10 @@ function getOptions() {
     if ($("#quality_radio_02 input").is(":checked")) {
         _options.quality = 0.80;
     } else {
-        _options.quality = 0.90;
+        _options.quality = 0.92;
+    }
+    if (!_options.doResize && _options.gamma == 1.0 && _options.quality == 0.92) {
+        _options.noAction = true;
     }
 }
 
@@ -70,7 +80,18 @@ function openFiles(files) {
                     images.push(this);
                     count++;
                     if (count == files.length) {
-                        loadedImages(images);
+                        if (!_options.noAction) {
+                            loadedImages(images);
+                        } else {
+                            images.forEach(function (image, index) {
+                                _imagedatas.push({
+                                    data: image.src,
+                                    filename: image.filename
+                                });
+                            });
+                            dispProgressWrap(false);
+                            downloadButtonStyle(true);
+                        }
                     }
                 });
                 image.src = e.target.result;
@@ -360,10 +381,6 @@ function progress(val, imageNum) {
     var w = ~~((val / imageNum) * 100) * 5;
     $("#progress_bar span").animate({ "width": w + "px" }, 50);
     return (val >= imageNum);
-}
-
-function setProgressBar(val, imageNum) {
-
 }
 
 // #region resize.js バージョン

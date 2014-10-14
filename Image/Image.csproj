@@ -66,6 +66,7 @@
     <Content Include="Content\Images\Home\flow02.png" />
     <Content Include="Content\Images\Home\flow03.png" />
     <Content Include="Content\Images\Home\images.png" />
+    <Content Include="Content\Text\Notes.txt" />
     <Content Include="index.html" />
     <Content Include="Scripts\Home\canvas-toBlob.js" />
     <Content Include="Scripts\Home\canvas-toBlob.min.js">
@@ -79,6 +80,12 @@
     <Content Include="Scripts\Home\Gamma.min.js">
       <DependentUpon>Gamma.js</DependentUpon>
     </Content>
+    <Content Include="Scripts\Home\Home.js">
+      <DependentUpon>Home.js.bundle</DependentUpon>
+    </Content>
+    <Content Include="Scripts\Home\Home.min.js">
+      <DependentUpon>Home.js</DependentUpon>
+    </Content>
     <Content Include="Scripts\Home\Index.js" />
     <Content Include="Scripts\Home\Index.min.js">
       <DependentUpon>Index.js</DependentUpon>
@@ -86,14 +93,6 @@
     <Content Include="Scripts\Home\jszip.js" />
     <Content Include="Scripts\Home\jszip.min.js">
       <DependentUpon>jszip.js</DependentUpon>
-    </Content>
-    <Content Include="Scripts\Home\resize.js" />
-    <Content Include="Scripts\Home\resize.min.js">
-      <DependentUpon>resize.js</DependentUpon>
-    </Content>
-    <Content Include="Scripts\Home\resizeWorker.js" />
-    <Content Include="Scripts\Home\resizeWorker.min.js">
-      <DependentUpon>resizeWorker.js</DependentUpon>
     </Content>
     <Content Include="Web.config" />
   </ItemGroup>
@@ -116,11 +115,9 @@
     <Content Include="Scripts\Home\jszip.min.js.map">
       <DependentUpon>jszip.min.js</DependentUpon>
     </Content>
-    <Content Include="Scripts\Home\resize.min.js.map">
-      <DependentUpon>resize.min.js</DependentUpon>
-    </Content>
-    <Content Include="Scripts\Home\resizeWorker.min.js.map">
-      <DependentUpon>resizeWorker.min.js</DependentUpon>
+    <Content Include="Scripts\Home\Home.js.bundle" />
+    <Content Include="Scripts\Home\Home.min.js.map">
+      <DependentUpon>Home.min.js</DependentUpon>
     </Content>
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
