@@ -1,8 +1,8 @@
 ﻿window.addEventListener("load", function () {
     var socialButtonWrap = $("<div id='social_button_wrap'></div>");
-    socialButtonWrap.append(getTwetCode());
-    socialButtonWrap.append("<div id='space'></div>");
     socialButtonWrap.append(getFacebookCode());
+    socialButtonWrap.append("<div id='space'></div>");
+    socialButtonWrap.append(getTwetCode());
     socialButtonWrap.append("<div id='space'></div>");
     socialButtonWrap.append(getGooglePlusCode());
     socialButtonWrap.append("<div id='space'></div>");
