@@ -61,6 +61,7 @@
     <Content Include="Content\Css\Home\Index.min.css">
       <DependentUpon>Index.css</DependentUpon>
     </Content>
+    <Content Include="Content\Images\Common\logo.png" />
     <Content Include="Content\Images\Home\droparea.png" />
     <Content Include="Content\Images\Home\flow01.png" />
     <Content Include="Content\Images\Home\flow02.png" />
