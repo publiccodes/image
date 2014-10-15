@@ -386,6 +386,7 @@ $(function () {
 });
 
 function setNotes() {
+    // TODO:本番環境ではimage/Imageを無くす
     $("#notes").load("/image/Image/Content/Text/Notes.txt");
 }
 
@@ -593,11 +594,34 @@ function saveZip(imagedatas) {
     saveAs(content, "images.zip");
 }
 
+function dataURL2Blob(dataurl) {
+    var barr;
+    var bin;
+    var i;
+    var len;
+    bin = atob(dataurl.split("base64,")[1]);
+    len = bin.length;
+    barr = new Uint8Array(len);
+    i = 0;
+    while (i < len) {
+        barr[i] = bin.charCodeAt(i);
+        i++;
+    }
+    return new Blob([barr], {
+        type: "image/jpeg"
+    });
+}
+
 function saveJpeg(imagedatas) {
     var canvas = imagedatas[0].canvas;
-    canvas.toBlob(function (blob) {
+    if (canvas != null || canvas != undefined) {
+        canvas.toBlob(function (blob) {
+            saveAs(blob, imagedatas[0].filename);
+        }, "image/jpeg", _options.quality);
+    } else {
+        var blob = dataURL2Blob(imagedatas[0].data);
         saveAs(blob, imagedatas[0].filename);
-    }, "image/jpeg", _options.quality);
+    }
 }
 
 function saveImages() {
