@@ -15,7 +15,7 @@ $(function () {
 });
 
 function setNotes() {
-    $("#notes").load("../../Content/Text/Notes.txt");
+    $("#notes").load("/image/Image/Content/Text/Notes.txt");
 }
 
 function resetSizeOptions() {
