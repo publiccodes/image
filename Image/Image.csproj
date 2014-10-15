@@ -57,6 +57,16 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Css\Home\Home.css">
+      <DependentUpon>Home.css.bundle</DependentUpon>
+    </Content>
+    <Content Include="Content\Css\Home\Home.min.css">
+      <DependentUpon>Home.css</DependentUpon>
+    </Content>
+    <Content Include="Content\Css\Home\SocialButtons.css" />
+    <Content Include="Content\Css\Home\Index - コピー.min.css">
+      <DependentUpon>SocialButtons.css</DependentUpon>
+    </Content>
     <Content Include="Content\Css\Home\Index.css" />
     <Content Include="Content\Css\Home\Index.min.css">
       <DependentUpon>Index.css</DependentUpon>
@@ -76,6 +86,10 @@
     <Content Include="Scripts\Home\FileSaver.js" />
     <Content Include="Scripts\Home\FileSaver.min.js">
       <DependentUpon>FileSaver.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\Home\AddSocialButtons.js" />
+    <Content Include="Scripts\Home\Gamma - コピー.min.js">
+      <DependentUpon>AddSocialButtons.js</DependentUpon>
     </Content>
     <Content Include="Scripts\Home\Gamma.js" />
     <Content Include="Scripts\Home\Gamma.min.js">
@@ -116,6 +130,10 @@
     <Content Include="Scripts\Home\jszip.min.js.map">
       <DependentUpon>jszip.min.js</DependentUpon>
     </Content>
+    <Content Include="Scripts\Home\Gamma - コピー.min.js.map">
+      <DependentUpon>Gamma - コピー.min.js</DependentUpon>
+    </Content>
+    <Content Include="Content\Css\Home\Home.css.bundle" />
     <Content Include="Scripts\Home\Home.js.bundle" />
     <Content Include="Scripts\Home\Home.min.js.map">
       <DependentUpon>Home.min.js</DependentUpon>

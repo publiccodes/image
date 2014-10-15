@@ -10,9 +10,10 @@
   </settings>
   <!--The order of the <file> elements determines the order of the files in the bundle.-->
   <files>
-    <file>/Scripts/Home/canvas-toBlob.js</file>
-    <file>/Scripts/Home/FileSaver.js</file>
-    <file>/Scripts/Home/Index.js</file>
     <file>/Scripts/Home/jszip.js</file>
+    <file>/Scripts/Home/FileSaver.js</file>
+    <file>/Scripts/Home/canvas-toBlob.js</file>
+    <file>/Scripts/Home/AddSocialButtons.js</file>
+    <file>/Scripts/Home/Index.js</file>
   </files>
 </bundle>

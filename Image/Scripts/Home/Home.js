@@ -1,956 +1,4 @@
-﻿///#source 1 1 /Scripts/Home/canvas-toBlob.js
-/* canvas-toBlob.js
- * A canvas.toBlob() implementation.
- * 2013-12-27
- * 
- * By Eli Grey, http://eligrey.com and Devin Samarin, https://github.com/eboyjr
- * License: X11/MIT
- *   See https://github.com/eligrey/canvas-toBlob.js/blob/master/LICENSE.md
- */
-
-/*global self */
-/*jslint bitwise: true, regexp: true, confusion: true, es5: true, vars: true, white: true,
-  plusplus: true */
-
-/*! @source http://purl.eligrey.com/github/canvas-toBlob.js/blob/master/canvas-toBlob.js */
-
-(function (view) {
-    "use strict";
-    var
-          Uint8Array = view.Uint8Array
-        , HTMLCanvasElement = view.HTMLCanvasElement
-        , canvas_proto = HTMLCanvasElement && HTMLCanvasElement.prototype
-        , is_base64_regex = /\s*;\s*base64\s*(?:;|$)/i
-        , to_data_url = "toDataURL"
-        , base64_ranks
-        , decode_base64 = function (base64) {
-            var
-                  len = base64.length
-                , buffer = new Uint8Array(len / 4 * 3 | 0)
-                , i = 0
-                , outptr = 0
-                , last = [0, 0]
-                , state = 0
-                , save = 0
-                , rank
-                , code
-                , undef
-            ;
-            while (len--) {
-                code = base64.charCodeAt(i++);
-                rank = base64_ranks[code - 43];
-                if (rank !== 255 && rank !== undef) {
-                    last[1] = last[0];
-                    last[0] = code;
-                    save = (save << 6) | rank;
-                    state++;
-                    if (state === 4) {
-                        buffer[outptr++] = save >>> 16;
-                        if (last[1] !== 61 /* padding character */) {
-                            buffer[outptr++] = save >>> 8;
-                        }
-                        if (last[0] !== 61 /* padding character */) {
-                            buffer[outptr++] = save;
-                        }
-                        state = 0;
-                    }
-                }
-            }
-            // 2/3 chance there's going to be some null bytes at the end, but that
-            // doesn't really matter with most image formats.
-            // If it somehow matters for you, truncate the buffer up outptr.
-            return buffer;
-        }
-    ;
-    if (Uint8Array) {
-        base64_ranks = new Uint8Array([
-              62, -1, -1, -1, 63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1
-            , -1, -1, 0, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
-            , 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
-            , -1, -1, -1, -1, -1, -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35
-            , 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
-        ]);
-    }
-    if (HTMLCanvasElement && !canvas_proto.toBlob) {
-        canvas_proto.toBlob = function (callback, type /*, ...args*/) {
-            if (!type) {
-                type = "image/png";
-            } if (this.mozGetAsFile) {
-                callback(this.mozGetAsFile("canvas", type));
-                return;
-            } if (this.msToBlob && /^\s*image\/png\s*(?:$|;)/i.test(type)) {
-                callback(this.msToBlob());
-                return;
-            }
-
-            var
-                  args = Array.prototype.slice.call(arguments, 1)
-                , dataURI = this[to_data_url].apply(this, args)
-                , header_end = dataURI.indexOf(",")
-                , data = dataURI.substring(header_end + 1)
-                , is_base64 = is_base64_regex.test(dataURI.substring(0, header_end))
-                , blob
-            ;
-            if (Blob.fake) {
-                // no reason to decode a data: URI that's just going to become a data URI again
-                blob = new Blob
-                if (is_base64) {
-                    blob.encoding = "base64";
-                } else {
-                    blob.encoding = "URI";
-                }
-                blob.data = data;
-                blob.size = data.length;
-            } else if (Uint8Array) {
-                if (is_base64) {
-                    blob = new Blob([decode_base64(data)], { type: type });
-                } else {
-                    blob = new Blob([decodeURIComponent(data)], { type: type });
-                }
-            }
-            callback(blob);
-        };
-
-        if (canvas_proto.toDataURLHD) {
-            canvas_proto.toBlobHD = function () {
-                to_data_url = "toDataURLHD";
-                var blob = this.toBlob();
-                to_data_url = "toDataURL";
-                return blob;
-            }
-        } else {
-            canvas_proto.toBlobHD = canvas_proto.toBlob;
-        }
-    }
-}(typeof self !== "undefined" && self || typeof window !== "undefined" && window || this.content || this));
-///#source 1 1 /Scripts/Home/FileSaver.js
-/* FileSaver.js
- * A saveAs() FileSaver implementation.
- * 2014-08-29
- *
- * By Eli Grey, http://eligrey.com
- * License: X11/MIT
- *   See https://github.com/eligrey/FileSaver.js/blob/master/LICENSE.md
- */
-
-/*global self */
-/*jslint bitwise: true, indent: 4, laxbreak: true, laxcomma: true, smarttabs: true, plusplus: true */
-
-/*! @source http://purl.eligrey.com/github/FileSaver.js/blob/master/FileSaver.js */
-
-var saveAs = saveAs
-  // IE 10+ (native saveAs)
-  || (typeof navigator !== "undefined" &&
-      navigator.msSaveOrOpenBlob && navigator.msSaveOrOpenBlob.bind(navigator))
-  // Everyone else
-  || (function(view) {
-	"use strict";
-	// IE <10 is explicitly unsupported
-	if (typeof navigator !== "undefined" &&
-	    /MSIE [1-9]\./.test(navigator.userAgent)) {
-		return;
-	}
-	var
-		  doc = view.document
-		  // only get URL when necessary in case Blob.js hasn't overridden it yet
-		, get_URL = function() {
-			return view.URL || view.webkitURL || view;
-		}
-		, save_link = doc.createElementNS("http://www.w3.org/1999/xhtml", "a")
-		, can_use_save_link = "download" in save_link
-		, click = function(node) {
-			var event = doc.createEvent("MouseEvents");
-			event.initMouseEvent(
-				"click", true, false, view, 0, 0, 0, 0, 0
-				, false, false, false, false, 0, null
-			);
-			node.dispatchEvent(event);
-		}
-		, webkit_req_fs = view.webkitRequestFileSystem
-		, req_fs = view.requestFileSystem || webkit_req_fs || view.mozRequestFileSystem
-		, throw_outside = function(ex) {
-			(view.setImmediate || view.setTimeout)(function() {
-				throw ex;
-			}, 0);
-		}
-		, force_saveable_type = "application/octet-stream"
-		, fs_min_size = 0
-		// See https://code.google.com/p/chromium/issues/detail?id=375297#c7 for
-		// the reasoning behind the timeout and revocation flow
-		, arbitrary_revoke_timeout = 10
-		, revoke = function(file) {
-			var revoker = function() {
-				if (typeof file === "string") { // file is an object URL
-					get_URL().revokeObjectURL(file);
-				} else { // file is a File
-					file.remove();
-				}
-			};
-			if (view.chrome) {
-				revoker();
-			} else {
-				setTimeout(revoker, arbitrary_revoke_timeout);
-			}
-		}
-		, dispatch = function(filesaver, event_types, event) {
-			event_types = [].concat(event_types);
-			var i = event_types.length;
-			while (i--) {
-				var listener = filesaver["on" + event_types[i]];
-				if (typeof listener === "function") {
-					try {
-						listener.call(filesaver, event || filesaver);
-					} catch (ex) {
-						throw_outside(ex);
-					}
-				}
-			}
-		}
-		, FileSaver = function(blob, name) {
-			// First try a.download, then web filesystem, then object URLs
-			var
-				  filesaver = this
-				, type = blob.type
-				, blob_changed = false
-				, object_url
-				, target_view
-				, dispatch_all = function() {
-					dispatch(filesaver, "writestart progress write writeend".split(" "));
-				}
-				// on any filesys errors revert to saving with object URLs
-				, fs_error = function() {
-					// don't create more object URLs than needed
-					if (blob_changed || !object_url) {
-						object_url = get_URL().createObjectURL(blob);
-					}
-					if (target_view) {
-						target_view.location.href = object_url;
-					} else {
-						var new_tab = view.open(object_url, "_blank");
-						if (new_tab == undefined && typeof safari !== "undefined") {
-							//Apple do not allow window.open, see http://bit.ly/1kZffRI
-							view.location.href = object_url
-						}
-					}
-					filesaver.readyState = filesaver.DONE;
-					dispatch_all();
-					revoke(object_url);
-				}
-				, abortable = function(func) {
-					return function() {
-						if (filesaver.readyState !== filesaver.DONE) {
-							return func.apply(this, arguments);
-						}
-					};
-				}
-				, create_if_not_found = {create: true, exclusive: false}
-				, slice
-			;
-			filesaver.readyState = filesaver.INIT;
-			if (!name) {
-				name = "download";
-			}
-			if (can_use_save_link) {
-				object_url = get_URL().createObjectURL(blob);
-				save_link.href = object_url;
-				save_link.download = name;
-				click(save_link);
-				filesaver.readyState = filesaver.DONE;
-				dispatch_all();
-				revoke(object_url);
-				return;
-			}
-			// Object and web filesystem URLs have a problem saving in Google Chrome when
-			// viewed in a tab, so I force save with application/octet-stream
-			// http://code.google.com/p/chromium/issues/detail?id=91158
-			// Update: Google errantly closed 91158, I submitted it again:
-			// https://code.google.com/p/chromium/issues/detail?id=389642
-			if (view.chrome && type && type !== force_saveable_type) {
-				slice = blob.slice || blob.webkitSlice;
-				blob = slice.call(blob, 0, blob.size, force_saveable_type);
-				blob_changed = true;
-			}
-			// Since I can't be sure that the guessed media type will trigger a download
-			// in WebKit, I append .download to the filename.
-			// https://bugs.webkit.org/show_bug.cgi?id=65440
-			if (webkit_req_fs && name !== "download") {
-				name += ".download";
-			}
-			if (type === force_saveable_type || webkit_req_fs) {
-				target_view = view;
-			}
-			if (!req_fs) {
-				fs_error();
-				return;
-			}
-			fs_min_size += blob.size;
-			req_fs(view.TEMPORARY, fs_min_size, abortable(function(fs) {
-				fs.root.getDirectory("saved", create_if_not_found, abortable(function(dir) {
-					var save = function() {
-						dir.getFile(name, create_if_not_found, abortable(function(file) {
-							file.createWriter(abortable(function(writer) {
-								writer.onwriteend = function(event) {
-									target_view.location.href = file.toURL();
-									filesaver.readyState = filesaver.DONE;
-									dispatch(filesaver, "writeend", event);
-									revoke(file);
-								};
-								writer.onerror = function() {
-									var error = writer.error;
-									if (error.code !== error.ABORT_ERR) {
-										fs_error();
-									}
-								};
-								"writestart progress write abort".split(" ").forEach(function(event) {
-									writer["on" + event] = filesaver["on" + event];
-								});
-								writer.write(blob);
-								filesaver.abort = function() {
-									writer.abort();
-									filesaver.readyState = filesaver.DONE;
-								};
-								filesaver.readyState = filesaver.WRITING;
-							}), fs_error);
-						}), fs_error);
-					};
-					dir.getFile(name, {create: false}, abortable(function(file) {
-						// delete file if it already exists
-						file.remove();
-						save();
-					}), abortable(function(ex) {
-						if (ex.code === ex.NOT_FOUND_ERR) {
-							save();
-						} else {
-							fs_error();
-						}
-					}));
-				}), fs_error);
-			}), fs_error);
-		}
-		, FS_proto = FileSaver.prototype
-		, saveAs = function(blob, name) {
-			return new FileSaver(blob, name);
-		}
-	;
-	FS_proto.abort = function() {
-		var filesaver = this;
-		filesaver.readyState = filesaver.DONE;
-		dispatch(filesaver, "abort");
-	};
-	FS_proto.readyState = FS_proto.INIT = 0;
-	FS_proto.WRITING = 1;
-	FS_proto.DONE = 2;
-
-	FS_proto.error =
-	FS_proto.onwritestart =
-	FS_proto.onprogress =
-	FS_proto.onwrite =
-	FS_proto.onabort =
-	FS_proto.onerror =
-	FS_proto.onwriteend =
-		null;
-
-	return saveAs;
-}(
-	   typeof self !== "undefined" && self
-	|| typeof window !== "undefined" && window
-	|| this.content
-));
-// `self` is undefined in Firefox for Android content script context
-// while `this` is nsIContentFrameMessageManager
-// with an attribute `content` that corresponds to the window
-
-if (typeof module !== "undefined" && module !== null) {
-  module.exports = saveAs;
-} else if ((typeof define !== "undefined" && define !== null) && (define.amd != null)) {
-  define([], function() {
-    return saveAs;
-  });
-}
-
-///#source 1 1 /Scripts/Home/Index.js
-var _options = {
-    noAction: false,
-    doResize: false,
-    maxWidth: 0,
-    maxHeight: 0,
-    gamma: 1.0,
-    quality: 1.0
-}
-var _imagedatas = new Array();
-
-$(function () {
-    setNotes();
-    initOptions();
-    setEvents();
-});
-
-function setNotes() {
-    // TODO:本番環境ではimage/Imageを無くす
-    $("#notes").load("/image/Image/Content/Text/Notes.txt");
-}
-
-function resetSizeOptions() {
-    $("#size_no_change input").attr("checked", true);
-    $("#size_no_change").css("background-position", "-65px -45px");
-    $("#textbox_width input").val(0);
-    $("#textbox_height input").val(0);
-}
-
-function initOptions() {
-    $("#size_no_change input").attr("checked", true);
-    $("#textbox_width input").val(0);
-    $("#textbox_height input").val(0);
-
-    $("#gamma_radio_01 input").attr("checked", true);
-    $("#gamma_radio_02 input").attr("checked", false);
-    $("#gamma_radio_03 input").attr("checked", false);
-
-    $("#quality_radio_01 input").attr("checked", true);
-    $("#quality_radio_02 input").attr("checked", false);
-}
-
-function getOptions() {
-    _options.noAction = false;
-    var width = $("#textbox_width input").val();
-    var height = $("#textbox_height input").val();
-    if (!isNaN(width) && width != 0) {
-        _options.maxWidth = width;
-        _options.maxHeight = 0;
-    } else if (!isNaN(height) && height != 0) {
-        _options.maxHeight = height;
-        _options.maxWidth = 0;
-    } else {
-        resetSizeOptions();
-        _options.maxWidth = 0;
-        _options.maxHeight = 0;
-    }
-    _options.doResize = !$("#size_no_change input").is(":checked");
-    _options.gamma = $("input[name='gamma']:checked").val();
-    if ($("#quality_radio_02 input").is(":checked")) {
-        _options.quality = 0.80;
-    } else {
-        _options.quality = 0.92;
-    }
-    if (!_options.doResize && _options.gamma == 1.0 && _options.quality == 0.92) {
-        _options.noAction = true;
-    }
-}
-
-function openFiles(files) {
-    dispProgressWrap(true);
-    getOptions();
-    var count = 0;
-    var images = new Array();
-    $(files).each(function (index, file) {
-        if (file.type == "image/jpeg") {
-            var reader = new FileReader();
-            reader.addEventListener("load", function (e) {
-                var image = new Image();
-                image.filename = file.name;
-                image.addEventListener("load", function () {
-                    images.push(this);
-                    count++;
-                    if (count == files.length) {
-                        if (!_options.noAction) {
-                            loadedImages(images);
-                        } else {
-                            images.forEach(function (image, index) {
-                                _imagedatas.push({
-                                    data: image.src,
-                                    filename: image.filename
-                                });
-                            });
-                            dispProgressWrap(false);
-                            downloadButtonStyle(true);
-                        }
-                    }
-                });
-                image.src = e.target.result;
-            });
-            reader.readAsDataURL(file);
-        } else {
-            count++;
-        }
-    });
-}
-
-function setDropAreaStyle(isEnter) {
-    var style = {}
-    if (isEnter) {
-        style = {
-            "background-position": "left bottom"
-        }
-    } else {
-        style = {
-            "background-position": "left top"
-        }
-    }
-    $("#file_drop_area").css(style);
-}
-
-function setEvents() {
-    $("#file_drop_area").on("dragover", function (event) {
-        event.preventDefault();
-    });
-    $("#file_drop_area").on("dragenter", function (event) {
-        setDropAreaStyle(true);
-        event.preventDefault();
-    });
-    $("#file_drop_area").on("dragleave", function (event) {
-        setDropAreaStyle(false);
-        event.preventDefault();
-    });
-    $("#file_drop_area").on("drop", function (event) {
-        setDropAreaStyle(false);
-        event.preventDefault();
-        var files = event.originalEvent.dataTransfer.files;
-        openFiles(files);
-    });
-    $("#dammy_input").click(function () {
-        $("#file_select_button").click();
-    });
-    $("#file_select_button").change(function (event) {
-        setDropAreaStyle(false);
-        openFiles(this.files);
-    });
-    $("#download_button").click(function () {
-        saveImages();
-    });
-
-    $("#size_no_change input").change(function () {
-        if ($(this).is(":checked")) {
-            $("#size_no_change").css("background-position", "-65px -45px");
-        } else {
-            $("#size_no_change").css("background-position", "-65px -22px");
-        }
-    });
-    $("#textbox_width input").change(function () {
-        $("#size_no_change input").attr("checked", false);
-        $("#size_no_change").css("background-position", "-65px -22px");
-        $("#textbox_height input").val(0);
-    });
-    $("#textbox_width input").keydown(function () {
-        $("#size_no_change input").attr("checked", false);
-        $("#size_no_change").css("background-position", "-65px -22px");
-        $("#textbox_height input").val(0);
-    });
-    $("#textbox_height input").change(function () {
-        $("#size_no_change input").attr("checked", false);
-        $("#size_no_change").css("background-position", "-65px -22px");
-        $("#textbox_width input").val(0);
-    });
-    $("#textbox_height input").keydown(function () {
-        $("#size_no_change input").attr("checked", false);
-        $("#size_no_change").css("background-position", "-65px -22px");
-        $("#textbox_width input").val(0);
-    });
-
-    $("#option_02 input").change(function () {
-        var id = $(this).data("id");
-        var bgX = $(this).data("bgX");
-        $("#gamma_radio_01").css("background-position", "-65px -22px");
-        $("#gamma_radio_02").css("background-position", "-153px -22px");
-        $("#gamma_radio_03").css("background-position", "-255px -22px");
-        $("#gamma_radio_" + id).css("background-position", bgX + " -45px");
-    });
-
-    $("#option_03 input").change(function () {
-        var id = $(this).data("id");
-        var bgX = $(this).data("bgX");
-        $("#quality_radio_01").css("background-position", "-65px -22px");
-        $("#quality_radio_02").css("background-position", "-326px -22px");
-        $("#quality_radio_" + id).css("background-position", bgX + " -45px");
-    });
-}
-
-function downloadButtonStyle(isEnable) {
-    var styles = {};
-    if (isEnable) {
-        styles = {
-            "background-position": "left -213px",
-            "cursor": "pointer"
-        }
-    } else {
-        styles = {
-            "background-position": "left -143px",
-            "cursor": "auto"
-        }
-    }
-    $("#download_button").css(styles);
-    $("#download_button").hover(function () {
-        $(this).css("background-position", "left -283px");
-    }, function () {
-        $(this).css("background-position", "left -213px");
-    });
-}
-
-function saveZip(imagedatas) {
-    var zip = new JSZip();
-    imagedatas.forEach(function (imagedata, index) {
-        zip.file(imagedata.filename, imagedata.data.slice(23), { base64: true });
-    });
-    var content = zip.generate({ type: "blob" });
-    saveAs(content, "images.zip");
-}
-
-function dataURL2Blob(dataurl) {
-    var barr;
-    var bin;
-    var i;
-    var len;
-    bin = atob(dataurl.split("base64,")[1]);
-    len = bin.length;
-    barr = new Uint8Array(len);
-    i = 0;
-    while (i < len) {
-        barr[i] = bin.charCodeAt(i);
-        i++;
-    }
-    return new Blob([barr], {
-        type: "image/jpeg"
-    });
-}
-
-function saveJpeg(imagedatas) {
-    var canvas = imagedatas[0].canvas;
-    if (canvas != null || canvas != undefined) {
-        canvas.toBlob(function (blob) {
-            saveAs(blob, imagedatas[0].filename);
-        }, "image/jpeg", _options.quality);
-    } else {
-        var blob = dataURL2Blob(imagedatas[0].data);
-        saveAs(blob, imagedatas[0].filename);
-    }
-}
-
-function saveImages() {
-    $("#wait_create_files_mask").fadeIn(100);
-    setTimeout(function () {
-        if (_imagedatas.length == 1) {
-            saveJpeg(_imagedatas);
-        } else if (_imagedatas.length > 1) {
-            saveZip(_imagedatas);
-        } else {
-            // 何もしない
-        }
-        $("#wait_create_files_mask").fadeOut(100);
-    }, 100);
-}
-
-function getSize(image) {
-    var alpha = 100;
-    var size = {
-        scale: 0,
-        width: _options.maxWidth,
-        height: _options.maxHeight
-    };
-    if (_options.doResize) {
-        if (_options.maxWidth > 0) {
-            if (image.width > _options.maxWidth) {
-                alpha = ~~((image.width - _options.maxWidth) * 0.04);
-                size.scale = (Math.sqrt((_options.maxWidth + alpha) / image.width));
-                size.height = ~~((image.height / image.width) * _options.maxWidth);
-            } else if (image.width == _options.maxWidth) {
-                size.scale = 1;
-                size.width = image.width;
-                size.height = image.height;
-            } else {
-                size.width = _options.maxWidth;
-                size.height = ~~((image.height / image.width) * _options.maxWidth);
-                size.scale = 1;
-            }
-        } else {
-            if (image.height > _options.maxHeight) {
-                alpha = ~~((image.height - _options.maxHeight) * 0.04);
-                size.scale = (Math.sqrt((_options.maxHeight + alpha) / image.height));
-                size.width = ~~((image.width / image.height) * _options.maxHeight);
-            } else if (image.height == _options.maxHeight) {
-                size.scale = 1;
-                size.width = image.width;
-                size.height = image.height;
-            } else {
-                size.width = ~~((image.width / image.height) * _options.maxHeight);
-                size.height = _options.maxHeight;
-                size.scale = 1;
-            }
-        }
-    } else {
-        size.scale = 1;
-        size.width = image.width;
-        size.height = image.height;
-    }
-    return size;
-}
-
-function scaleDown(image, size) {
-    var dw, dh, sw, sh;
-    var canvas1 = document.createElement("canvas");
-    var context1 = canvas1.getContext("2d");
-    var canvas2 = document.createElement("canvas");
-    var context2 = canvas2.getContext("2d");
-
-    // 一回目の縮小
-    dw = canvas2.width = ~~(image.width * size.scale);
-    dh = canvas2.height = ~~(image.height * size.scale);
-    context2.drawImage(image, 0, 0, dw, dh);
-
-    // 二回目の縮小
-    dw = ~~(canvas2.width * size.scale);
-    dh = ~~(canvas2.height * size.scale);
-    context2.drawImage(canvas2, 0, 0, dw, dh);
-
-    // 三回目の縮小
-    sw = ~~(canvas2.width * size.scale);
-    sh = ~~(canvas2.height * size.scale);
-    dw = canvas1.width = size.width;
-    dh = canvas1.height = size.height;
-    context1.drawImage(canvas2, 0, 0, sw, sh, 0, 0, dw, dh);
-    return context1.getImageData(0, 0, size.width, size.height);
-}
-
-function scaleUp(image, size) {
-    var canvas = document.createElement("canvas");
-    var context = canvas.getContext("2d");
-    canvas.width = size.width;
-    canvas.height = size.height;
-    context.drawImage(image, 0, 0, image.width, image.height, 0, 0, size.width, size.height);
-    var imagedata = context.getImageData(0, 0, size.width, size.height);
-    return imagedata;
-}
-
-function scaleChange(image) {
-    var size = getSize(image);
-    if (size.scale < 1) {
-        return scaleDown(image, size);
-    } else {
-        return scaleUp(image, size);
-    }
-}
-
-function loadedImages(images) {
-    var progressVal = 0;
-    downloadButtonStyle(false);
-    _imagedatas = new Array();
-    images.forEach(function (image, index) {
-        var imagedata = scaleChange(image);
-        var worker = new Worker("Scripts/Home/Gamma.js");
-        worker.addEventListener("message", function (e) {
-            addImagedatas(e.data.imagedata, e.data.filename, ++progressVal, images.length);
-        }, false);
-        worker.postMessage({
-            imagedata: imagedata,
-            filename: image.filename,
-            gamma: _options.gamma
-        });
-    });
-}
-
-function addImagedatas(imagedata, filename, progressVal, imagesLength) {
-    var canvas = document.createElement("canvas");
-    var context = canvas.getContext("2d");
-    canvas.width = imagedata.width;
-    canvas.height = imagedata.height;
-    context.putImageData(imagedata, 0, 0);
-    _imagedatas.push({
-        data: canvas.toDataURL("image/jpeg", _options.quality),
-        filename: filename,
-        canvas: canvas
-    });
-    if (progress(progressVal, imagesLength)) {
-        downloadButtonStyle(true);
-        dispProgressWrap(false);
-    }
-}
-
-function dispProgressWrap(visible) {
-    if (visible) {
-        $("#progress_wrap").show();
-        $("#progress_bar span").css("width", "0px");
-    } else {
-        $("#progress_wrap").fadeOut(100);
-    }
-}
-
-function progress(val, imageNum) {
-    var w = ~~((val / imageNum) * 100) * 5;
-    $("#progress_bar span").animate({ "width": w + "px" }, 50);
-    return (val >= imageNum);
-}
-
-// #region resize.js バージョン
-
-function resize0(images) {
-    var imagedatas = new Array();
-    images.forEach(function (image, index) {
-        var filename = image.filename;
-        var originalWidth = image.width;
-        var originalHeight = image.height;
-        var newWidth;
-        var newHeight;
-        if (originalWidth > originalHeight) {
-            newWidth = _options.maxWidth;
-            newHeight = originalHeight * _options.maxWidth / originalWidth;
-        } else {
-            newWidth = originalWidth * _options.maxHeight / originalHeight;
-            newHeight = _options.maxHeight;
-        }
-        var useWebWorker = true;
-        var blendAlpha = true;
-        interpolationPass = true;
-        var resizer = new Resize(originalWidth, originalHeight, newWidth, newHeight, blendAlpha, interpolationPass, useWebWorker, function (frameBuffer) {
-            var canvasDst = document.createElement("canvas");
-            canvasDst.width = newWidth;
-            canvasDst.height = newHeight;
-            var contextDst = canvasDst.getContext("2d");
-            var imageBuffer = contextDst.createImageData(newWidth, newHeight);
-            var data = imageBuffer.data;
-            var length = data.length;
-            for (var x = 0; x < length; ++x) {
-                data[x] = frameBuffer[x] & 0xFF;
-            }
-            contextDst.putImageData(imageBuffer, 0, 0);
-            var imagedata = contextDst.getImageData(0, 0, newWidth, newHeight);
-            imagedata.filename = this.filename;
-            imagedatas.push(imagedata);
-            if (imagedatas.length == images.length) {
-                loadedImages2(imagedatas);
-            }
-        });
-        var canvasSrc = document.createElement("canvas");
-        canvasSrc.width = originalWidth;
-        canvasSrc.height = originalHeight;
-        var contextSrc = canvasSrc.getContext("2d");
-        contextSrc.drawImage(image, 0, 0, originalWidth, originalHeight);
-        var dataToScale = contextSrc.getImageData(0, 0, originalWidth, originalHeight).data;
-        resizer.filename = image.filename;;
-        resizer.resize(dataToScale);
-    });
-}
-
-function loadedImages2(imagedatas) {
-    var imagedatas2 = new Array();
-    imagedatas.forEach(function (imagedata, index) {
-        var worker = new Worker("Scripts/Home/Gamma.js");
-        worker.addEventListener('message', function (e) {
-            var canvas = document.createElement("canvas");
-            var context = canvas.getContext("2d");
-            canvas.width = e.data.imagedata.width;
-            canvas.height = e.data.imagedata.height;
-            context.putImageData(e.data.imagedata, 0, 0);
-            imagedatas2.push({
-                data: canvas.toDataURL("image/jpeg", _options.quality).slice(23),
-                filename: "min_" + e.data.filename
-            });
-            _progress++;
-            if (_progress == imagedatas.length) {
-                saveZip(imagedatas2);
-            }
-            $("#progress").text(_progress);
-        }, false);
-        worker.postMessage({
-            imagedata: imagedata,
-            filename: imagedata.filename,
-            gamma: _options.gamma
-        });
-    });
-}
-
-// #endregion
-
-// #region 物置
-
-function scaleDown0(image, maxWidth, maxHeight) {
-    var canvas = document.createElement("canvas");
-    var context = canvas.getContext("2d");
-    canvas.width = 500;
-    canvas.height = 299;
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-    var flag = false;
-    context.msImageSmoothingEnabled = flag;
-    context.mozImageSmoothingEnabled = flag;
-    context.webkitImageSmoothingEnabled = flag;
-    context.imageSmoothingEnabled = flag;
-
-    return context.getImageData(0, 0, 500, 299);
-}
-
-/*
- * 輝度調整
- */
-function brightness(src) {
-    var gamma = 2.5;
-    for (var i = 0; i < src.data.length; i = i + 4) {
-        src.data[i + 0] = ~~(255 * Math.pow((src.data[i + 0] / 255), 1 / gamma));
-        src.data[i + 1] = ~~(255 * Math.pow((src.data[i + 1] / 255), 1 / gamma));
-        src.data[i + 2] = ~~(255 * Math.pow((src.data[i + 2] / 255), 1 / gamma));
-        src.data[i + 3] = src.data[i + 3];
-    }
-    return src;
-}
-
-function resize(img, maxWidth, maxHeight) {
-    var size = {
-        width: maxWidth,
-        height: maxHeight
-    };
-    if (maxWidth != 0) {
-        size.width = maxWidth;
-        size.height = ~~((img.height / img.width) * maxWidth);
-    }
-    if (maxHeight != 0) {
-        size.height = maxHeight;
-        size.width = ~~((img.width / img.height) * maxHeight);
-    }
-    return size;
-}
-
-function scaleDown2(img, maxWidth, maxHeight) {
-    var canvas = document.createElement("canvas");
-    var context = canvas.getContext("2d");
-    var size = resize(img, MAX_WIDTH, MAX_HEIGHT);
-    canvas.width = size.width;
-    canvas.height = size.height;
-    context.drawImage(img, 0, 0, size.width, size.height);
-    return canvas;
-}
-
-function scaleDown3(img, maxWidth, maxHeight) {
-    var size = getSize(img, maxWidth, maxHeight);
-    var canvas1 = document.createElement("canvas");
-    var context1 = canvas1.getContext("2d");
-
-    /// step 1
-    var canvas2 = document.createElement("canvas");
-    var context2 = canvas2.getContext("2d");
-
-    canvas2.width = ~~(img.width * size.scale);
-    canvas2.height = ~~(img.height * size.scale);
-    context2.drawImage(img, 0, 0, canvas2.width, canvas2.height);
-
-    /// step 2
-    context2.drawImage(canvas2, 0, 0, ~~(canvas2.width * size.scale), ~~(canvas2.height * size.scale),
-        0, 0, 500, 299);
-    return canvas2;
-
-    //canvas1.width = size.width;
-    //canvas1.height = size.height;
-    //context1.drawImage(canvas2, 0, 0, ~~(canvas2.width * size.scale), ~~(canvas2.height * size.scale),
-    //                 0, 0, canvas1.width, canvas1.height);
-    //return canvas1;
-}
-
-//var zip = new JSZip();
-//zip.file("Hello.txt", "Hello World\n");
-//var img = zip.folder("images");
-//img.file("smile.gif", imgData, { base64: true });
-//var content = zip.generate({ type: "blob" });
-//// see FileSaver.js
-//saveAs(content, "example.zip");
-
-// #endregion
-///#source 1 1 /Scripts/Home/jszip.js
+﻿///#source 1 1 /Scripts/Home/jszip.js
 /*!
 
 JSZip - A Javascript class for generating and reading zip files
@@ -9934,3 +8982,1003 @@ module.exports = ZStream;
 (9)
 });
 
+///#source 1 1 /Scripts/Home/FileSaver.js
+/* FileSaver.js
+ * A saveAs() FileSaver implementation.
+ * 2014-08-29
+ *
+ * By Eli Grey, http://eligrey.com
+ * License: X11/MIT
+ *   See https://github.com/eligrey/FileSaver.js/blob/master/LICENSE.md
+ */
+
+/*global self */
+/*jslint bitwise: true, indent: 4, laxbreak: true, laxcomma: true, smarttabs: true, plusplus: true */
+
+/*! @source http://purl.eligrey.com/github/FileSaver.js/blob/master/FileSaver.js */
+
+var saveAs = saveAs
+  // IE 10+ (native saveAs)
+  || (typeof navigator !== "undefined" &&
+      navigator.msSaveOrOpenBlob && navigator.msSaveOrOpenBlob.bind(navigator))
+  // Everyone else
+  || (function(view) {
+	"use strict";
+	// IE <10 is explicitly unsupported
+	if (typeof navigator !== "undefined" &&
+	    /MSIE [1-9]\./.test(navigator.userAgent)) {
+		return;
+	}
+	var
+		  doc = view.document
+		  // only get URL when necessary in case Blob.js hasn't overridden it yet
+		, get_URL = function() {
+			return view.URL || view.webkitURL || view;
+		}
+		, save_link = doc.createElementNS("http://www.w3.org/1999/xhtml", "a")
+		, can_use_save_link = "download" in save_link
+		, click = function(node) {
+			var event = doc.createEvent("MouseEvents");
+			event.initMouseEvent(
+				"click", true, false, view, 0, 0, 0, 0, 0
+				, false, false, false, false, 0, null
+			);
+			node.dispatchEvent(event);
+		}
+		, webkit_req_fs = view.webkitRequestFileSystem
+		, req_fs = view.requestFileSystem || webkit_req_fs || view.mozRequestFileSystem
+		, throw_outside = function(ex) {
+			(view.setImmediate || view.setTimeout)(function() {
+				throw ex;
+			}, 0);
+		}
+		, force_saveable_type = "application/octet-stream"
+		, fs_min_size = 0
+		// See https://code.google.com/p/chromium/issues/detail?id=375297#c7 for
+		// the reasoning behind the timeout and revocation flow
+		, arbitrary_revoke_timeout = 10
+		, revoke = function(file) {
+			var revoker = function() {
+				if (typeof file === "string") { // file is an object URL
+					get_URL().revokeObjectURL(file);
+				} else { // file is a File
+					file.remove();
+				}
+			};
+			if (view.chrome) {
+				revoker();
+			} else {
+				setTimeout(revoker, arbitrary_revoke_timeout);
+			}
+		}
+		, dispatch = function(filesaver, event_types, event) {
+			event_types = [].concat(event_types);
+			var i = event_types.length;
+			while (i--) {
+				var listener = filesaver["on" + event_types[i]];
+				if (typeof listener === "function") {
+					try {
+						listener.call(filesaver, event || filesaver);
+					} catch (ex) {
+						throw_outside(ex);
+					}
+				}
+			}
+		}
+		, FileSaver = function(blob, name) {
+			// First try a.download, then web filesystem, then object URLs
+			var
+				  filesaver = this
+				, type = blob.type
+				, blob_changed = false
+				, object_url
+				, target_view
+				, dispatch_all = function() {
+					dispatch(filesaver, "writestart progress write writeend".split(" "));
+				}
+				// on any filesys errors revert to saving with object URLs
+				, fs_error = function() {
+					// don't create more object URLs than needed
+					if (blob_changed || !object_url) {
+						object_url = get_URL().createObjectURL(blob);
+					}
+					if (target_view) {
+						target_view.location.href = object_url;
+					} else {
+						var new_tab = view.open(object_url, "_blank");
+						if (new_tab == undefined && typeof safari !== "undefined") {
+							//Apple do not allow window.open, see http://bit.ly/1kZffRI
+							view.location.href = object_url
+						}
+					}
+					filesaver.readyState = filesaver.DONE;
+					dispatch_all();
+					revoke(object_url);
+				}
+				, abortable = function(func) {
+					return function() {
+						if (filesaver.readyState !== filesaver.DONE) {
+							return func.apply(this, arguments);
+						}
+					};
+				}
+				, create_if_not_found = {create: true, exclusive: false}
+				, slice
+			;
+			filesaver.readyState = filesaver.INIT;
+			if (!name) {
+				name = "download";
+			}
+			if (can_use_save_link) {
+				object_url = get_URL().createObjectURL(blob);
+				save_link.href = object_url;
+				save_link.download = name;
+				click(save_link);
+				filesaver.readyState = filesaver.DONE;
+				dispatch_all();
+				revoke(object_url);
+				return;
+			}
+			// Object and web filesystem URLs have a problem saving in Google Chrome when
+			// viewed in a tab, so I force save with application/octet-stream
+			// http://code.google.com/p/chromium/issues/detail?id=91158
+			// Update: Google errantly closed 91158, I submitted it again:
+			// https://code.google.com/p/chromium/issues/detail?id=389642
+			if (view.chrome && type && type !== force_saveable_type) {
+				slice = blob.slice || blob.webkitSlice;
+				blob = slice.call(blob, 0, blob.size, force_saveable_type);
+				blob_changed = true;
+			}
+			// Since I can't be sure that the guessed media type will trigger a download
+			// in WebKit, I append .download to the filename.
+			// https://bugs.webkit.org/show_bug.cgi?id=65440
+			if (webkit_req_fs && name !== "download") {
+				name += ".download";
+			}
+			if (type === force_saveable_type || webkit_req_fs) {
+				target_view = view;
+			}
+			if (!req_fs) {
+				fs_error();
+				return;
+			}
+			fs_min_size += blob.size;
+			req_fs(view.TEMPORARY, fs_min_size, abortable(function(fs) {
+				fs.root.getDirectory("saved", create_if_not_found, abortable(function(dir) {
+					var save = function() {
+						dir.getFile(name, create_if_not_found, abortable(function(file) {
+							file.createWriter(abortable(function(writer) {
+								writer.onwriteend = function(event) {
+									target_view.location.href = file.toURL();
+									filesaver.readyState = filesaver.DONE;
+									dispatch(filesaver, "writeend", event);
+									revoke(file);
+								};
+								writer.onerror = function() {
+									var error = writer.error;
+									if (error.code !== error.ABORT_ERR) {
+										fs_error();
+									}
+								};
+								"writestart progress write abort".split(" ").forEach(function(event) {
+									writer["on" + event] = filesaver["on" + event];
+								});
+								writer.write(blob);
+								filesaver.abort = function() {
+									writer.abort();
+									filesaver.readyState = filesaver.DONE;
+								};
+								filesaver.readyState = filesaver.WRITING;
+							}), fs_error);
+						}), fs_error);
+					};
+					dir.getFile(name, {create: false}, abortable(function(file) {
+						// delete file if it already exists
+						file.remove();
+						save();
+					}), abortable(function(ex) {
+						if (ex.code === ex.NOT_FOUND_ERR) {
+							save();
+						} else {
+							fs_error();
+						}
+					}));
+				}), fs_error);
+			}), fs_error);
+		}
+		, FS_proto = FileSaver.prototype
+		, saveAs = function(blob, name) {
+			return new FileSaver(blob, name);
+		}
+	;
+	FS_proto.abort = function() {
+		var filesaver = this;
+		filesaver.readyState = filesaver.DONE;
+		dispatch(filesaver, "abort");
+	};
+	FS_proto.readyState = FS_proto.INIT = 0;
+	FS_proto.WRITING = 1;
+	FS_proto.DONE = 2;
+
+	FS_proto.error =
+	FS_proto.onwritestart =
+	FS_proto.onprogress =
+	FS_proto.onwrite =
+	FS_proto.onabort =
+	FS_proto.onerror =
+	FS_proto.onwriteend =
+		null;
+
+	return saveAs;
+}(
+	   typeof self !== "undefined" && self
+	|| typeof window !== "undefined" && window
+	|| this.content
+));
+// `self` is undefined in Firefox for Android content script context
+// while `this` is nsIContentFrameMessageManager
+// with an attribute `content` that corresponds to the window
+
+if (typeof module !== "undefined" && module !== null) {
+  module.exports = saveAs;
+} else if ((typeof define !== "undefined" && define !== null) && (define.amd != null)) {
+  define([], function() {
+    return saveAs;
+  });
+}
+
+///#source 1 1 /Scripts/Home/canvas-toBlob.js
+/* canvas-toBlob.js
+ * A canvas.toBlob() implementation.
+ * 2013-12-27
+ * 
+ * By Eli Grey, http://eligrey.com and Devin Samarin, https://github.com/eboyjr
+ * License: X11/MIT
+ *   See https://github.com/eligrey/canvas-toBlob.js/blob/master/LICENSE.md
+ */
+
+/*global self */
+/*jslint bitwise: true, regexp: true, confusion: true, es5: true, vars: true, white: true,
+  plusplus: true */
+
+/*! @source http://purl.eligrey.com/github/canvas-toBlob.js/blob/master/canvas-toBlob.js */
+
+(function (view) {
+    "use strict";
+    var
+          Uint8Array = view.Uint8Array
+        , HTMLCanvasElement = view.HTMLCanvasElement
+        , canvas_proto = HTMLCanvasElement && HTMLCanvasElement.prototype
+        , is_base64_regex = /\s*;\s*base64\s*(?:;|$)/i
+        , to_data_url = "toDataURL"
+        , base64_ranks
+        , decode_base64 = function (base64) {
+            var
+                  len = base64.length
+                , buffer = new Uint8Array(len / 4 * 3 | 0)
+                , i = 0
+                , outptr = 0
+                , last = [0, 0]
+                , state = 0
+                , save = 0
+                , rank
+                , code
+                , undef
+            ;
+            while (len--) {
+                code = base64.charCodeAt(i++);
+                rank = base64_ranks[code - 43];
+                if (rank !== 255 && rank !== undef) {
+                    last[1] = last[0];
+                    last[0] = code;
+                    save = (save << 6) | rank;
+                    state++;
+                    if (state === 4) {
+                        buffer[outptr++] = save >>> 16;
+                        if (last[1] !== 61 /* padding character */) {
+                            buffer[outptr++] = save >>> 8;
+                        }
+                        if (last[0] !== 61 /* padding character */) {
+                            buffer[outptr++] = save;
+                        }
+                        state = 0;
+                    }
+                }
+            }
+            // 2/3 chance there's going to be some null bytes at the end, but that
+            // doesn't really matter with most image formats.
+            // If it somehow matters for you, truncate the buffer up outptr.
+            return buffer;
+        }
+    ;
+    if (Uint8Array) {
+        base64_ranks = new Uint8Array([
+              62, -1, -1, -1, 63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1
+            , -1, -1, 0, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+            , 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
+            , -1, -1, -1, -1, -1, -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35
+            , 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
+        ]);
+    }
+    if (HTMLCanvasElement && !canvas_proto.toBlob) {
+        canvas_proto.toBlob = function (callback, type /*, ...args*/) {
+            if (!type) {
+                type = "image/png";
+            } if (this.mozGetAsFile) {
+                callback(this.mozGetAsFile("canvas", type));
+                return;
+            } if (this.msToBlob && /^\s*image\/png\s*(?:$|;)/i.test(type)) {
+                callback(this.msToBlob());
+                return;
+            }
+
+            var
+                  args = Array.prototype.slice.call(arguments, 1)
+                , dataURI = this[to_data_url].apply(this, args)
+                , header_end = dataURI.indexOf(",")
+                , data = dataURI.substring(header_end + 1)
+                , is_base64 = is_base64_regex.test(dataURI.substring(0, header_end))
+                , blob
+            ;
+            if (Blob.fake) {
+                // no reason to decode a data: URI that's just going to become a data URI again
+                blob = new Blob
+                if (is_base64) {
+                    blob.encoding = "base64";
+                } else {
+                    blob.encoding = "URI";
+                }
+                blob.data = data;
+                blob.size = data.length;
+            } else if (Uint8Array) {
+                if (is_base64) {
+                    blob = new Blob([decode_base64(data)], { type: type });
+                } else {
+                    blob = new Blob([decodeURIComponent(data)], { type: type });
+                }
+            }
+            callback(blob);
+        };
+
+        if (canvas_proto.toDataURLHD) {
+            canvas_proto.toBlobHD = function () {
+                to_data_url = "toDataURLHD";
+                var blob = this.toBlob();
+                to_data_url = "toDataURL";
+                return blob;
+            }
+        } else {
+            canvas_proto.toBlobHD = canvas_proto.toBlob;
+        }
+    }
+}(typeof self !== "undefined" && self || typeof window !== "undefined" && window || this.content || this));
+///#source 1 1 /Scripts/Home/AddSocialButtons.js
+window.addEventListener("load", function () {
+    var socialButtonWrap = $("<div id='social_button_wrap'></div>");
+    socialButtonWrap.append(getTwetCode());
+    socialButtonWrap.append("<div id='space'></div>");
+    socialButtonWrap.append(getFacebookCode());
+    socialButtonWrap.append("<div id='space'></div>");
+    socialButtonWrap.append(getGooglePlusCode());
+    socialButtonWrap.append("<div id='space'></div>");
+    socialButtonWrap.append(getHatenaCode());
+    $("body").append(socialButtonWrap);
+});
+
+function getTwetCode() {
+    var code = "<a href='https://twitter.com/share' class='twitter-share-button' data-count='vertical'>Tweet</a>";
+    code += "<script>";
+    code += "!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';";
+    code += "if(!d.getElementById(id)){js=d.createElement(s);";
+    code += "js.id=id;";
+    code += "js.src=p+'://platform.twitter.com/widgets.js';";
+    code += "fjs.parentNode.insertBefore(js,fjs);";
+    code += "}}(document, 'script', 'twitter-wjs');";
+    code += "</script>";
+    return code;
+}
+
+function getFacebookCode() {
+    var code = "<iframe src='//www.facebook.com/plugins/like.php?href=https%3A%2F%2Fdevelopers.facebook.com%2Fdocs%2Fplugins%2F&amp;width&amp;layout=box_count&amp;action=like&amp;show_faces=false&amp;share=false&amp;height=65' scrolling='no' frameborder='0' style='border:none; overflow:hidden; height:65px;' allowTransparency='true'></iframe>";
+    return code;
+}
+
+function getGooglePlusCode() {
+    var code = "<div class='g-plusone' data-size='tall'></div>";
+    code += "<script type='text/javascript'>";
+    code += "window.___gcfg = {lang: 'ja'};";
+    code += "(function() {";
+    code += "var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;";
+    code += "po.src = 'https://apis.google.com/js/platform.js';";
+    code += "var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);";
+    code += "})();";
+    code += "</script>";
+    return code;
+}
+
+// http://b.hatena.ne.jp/guide/bbutton_prev
+function getHatenaCode() {
+    return "<a href='http://b.hatena.ne.jp/entry/' class='hatena-bookmark-button' data-hatena-bookmark-layout='vertical' title='このエントリーをはてなブックマークに追加'><img src='http://b.st-hatena.com/images/entry-button/button-only.gif' alt='このエントリーをはてなブックマークに追加' width='20' height='20' style='border: none;' /></a><script type='text/javascript' src='http://cdn-ak.b.st-hatena.com/js/bookmark_button.js' charset='utf-8' async='async'></script>";
+}
+///#source 1 1 /Scripts/Home/Index.js
+var _options = {
+    noAction: false,
+    doResize: false,
+    maxWidth: 0,
+    maxHeight: 0,
+    gamma: 1.0,
+    quality: 1.0
+}
+var _imagedatas = new Array();
+
+$(function () {
+    setNotes();
+    initOptions();
+    setEvents();
+});
+
+function setNotes() {
+    // TODO:本番環境ではimage/Imageを無くす
+    $("#notes").load("/image/Image/Content/Text/Notes.txt");
+}
+
+function resetSizeOptions() {
+    $("#size_no_change input").attr("checked", true);
+    $("#size_no_change").css("background-position", "-65px -45px");
+    $("#textbox_width input").val(0);
+    $("#textbox_height input").val(0);
+}
+
+function initOptions() {
+    $("#size_no_change input").attr("checked", true);
+    $("#textbox_width input").val(0);
+    $("#textbox_height input").val(0);
+
+    $("#gamma_radio_01 input").attr("checked", true);
+    $("#gamma_radio_02 input").attr("checked", false);
+    $("#gamma_radio_03 input").attr("checked", false);
+
+    $("#quality_radio_01 input").attr("checked", true);
+    $("#quality_radio_02 input").attr("checked", false);
+}
+
+function getOptions() {
+    _options.noAction = false;
+    var width = $("#textbox_width input").val();
+    var height = $("#textbox_height input").val();
+    if (!isNaN(width) && width != 0) {
+        _options.maxWidth = width;
+        _options.maxHeight = 0;
+    } else if (!isNaN(height) && height != 0) {
+        _options.maxHeight = height;
+        _options.maxWidth = 0;
+    } else {
+        resetSizeOptions();
+        _options.maxWidth = 0;
+        _options.maxHeight = 0;
+    }
+    _options.doResize = !$("#size_no_change input").is(":checked");
+    _options.gamma = $("input[name='gamma']:checked").val();
+    if ($("#quality_radio_02 input").is(":checked")) {
+        _options.quality = 0.80;
+    } else {
+        _options.quality = 0.92;
+    }
+    if (!_options.doResize && _options.gamma == 1.0 && _options.quality == 0.92) {
+        _options.noAction = true;
+    }
+}
+
+function openFiles(files) {
+    dispProgressWrap(true);
+    getOptions();
+    var count = 0;
+    var images = new Array();
+    $(files).each(function (index, file) {
+        if (file.type == "image/jpeg") {
+            var reader = new FileReader();
+            reader.addEventListener("load", function (e) {
+                var image = new Image();
+                image.filename = file.name;
+                image.addEventListener("load", function () {
+                    images.push(this);
+                    count++;
+                    if (count == files.length) {
+                        if (!_options.noAction) {
+                            loadedImages(images);
+                        } else {
+                            images.forEach(function (image, index) {
+                                _imagedatas.push({
+                                    data: image.src,
+                                    filename: image.filename
+                                });
+                            });
+                            dispProgressWrap(false);
+                            downloadButtonStyle(true);
+                        }
+                    }
+                });
+                image.src = e.target.result;
+            });
+            reader.readAsDataURL(file);
+        } else {
+            count++;
+        }
+    });
+}
+
+function setDropAreaStyle(isEnter) {
+    var style = {}
+    if (isEnter) {
+        style = {
+            "background-position": "left bottom"
+        }
+    } else {
+        style = {
+            "background-position": "left top"
+        }
+    }
+    $("#file_drop_area").css(style);
+}
+
+function setEvents() {
+    $("#file_drop_area").on("dragover", function (event) {
+        event.preventDefault();
+    });
+    $("#file_drop_area").on("dragenter", function (event) {
+        setDropAreaStyle(true);
+        event.preventDefault();
+    });
+    $("#file_drop_area").on("dragleave", function (event) {
+        setDropAreaStyle(false);
+        event.preventDefault();
+    });
+    $("#file_drop_area").on("drop", function (event) {
+        setDropAreaStyle(false);
+        event.preventDefault();
+        var files = event.originalEvent.dataTransfer.files;
+        openFiles(files);
+    });
+    $("#dammy_input").click(function () {
+        $("#file_select_button").click();
+    });
+    $("#file_select_button").change(function (event) {
+        setDropAreaStyle(false);
+        openFiles(this.files);
+    });
+    $("#download_button").click(function () {
+        saveImages();
+    });
+
+    $("#size_no_change input").change(function () {
+        if ($(this).is(":checked")) {
+            $("#size_no_change").css("background-position", "-65px -45px");
+        } else {
+            $("#size_no_change").css("background-position", "-65px -22px");
+        }
+    });
+    $("#textbox_width input").change(function () {
+        $("#size_no_change input").attr("checked", false);
+        $("#size_no_change").css("background-position", "-65px -22px");
+        $("#textbox_height input").val(0);
+    });
+    $("#textbox_width input").keydown(function () {
+        $("#size_no_change input").attr("checked", false);
+        $("#size_no_change").css("background-position", "-65px -22px");
+        $("#textbox_height input").val(0);
+    });
+    $("#textbox_height input").change(function () {
+        $("#size_no_change input").attr("checked", false);
+        $("#size_no_change").css("background-position", "-65px -22px");
+        $("#textbox_width input").val(0);
+    });
+    $("#textbox_height input").keydown(function () {
+        $("#size_no_change input").attr("checked", false);
+        $("#size_no_change").css("background-position", "-65px -22px");
+        $("#textbox_width input").val(0);
+    });
+
+    $("#option_02 input").change(function () {
+        var id = $(this).data("id");
+        var bgX = $(this).data("bgX");
+        $("#gamma_radio_01").css("background-position", "-65px -22px");
+        $("#gamma_radio_02").css("background-position", "-153px -22px");
+        $("#gamma_radio_03").css("background-position", "-255px -22px");
+        $("#gamma_radio_" + id).css("background-position", bgX + " -45px");
+    });
+
+    $("#option_03 input").change(function () {
+        var id = $(this).data("id");
+        var bgX = $(this).data("bgX");
+        $("#quality_radio_01").css("background-position", "-65px -22px");
+        $("#quality_radio_02").css("background-position", "-326px -22px");
+        $("#quality_radio_" + id).css("background-position", bgX + " -45px");
+    });
+}
+
+function downloadButtonStyle(isEnable) {
+    var styles = {};
+    if (isEnable) {
+        styles = {
+            "background-position": "left -213px",
+            "cursor": "pointer"
+        }
+    } else {
+        styles = {
+            "background-position": "left -143px",
+            "cursor": "auto"
+        }
+    }
+    $("#download_button").css(styles);
+    $("#download_button").hover(function () {
+        $(this).css("background-position", "left -283px");
+    }, function () {
+        $(this).css("background-position", "left -213px");
+    });
+}
+
+function saveZip(imagedatas) {
+    var zip = new JSZip();
+    imagedatas.forEach(function (imagedata, index) {
+        zip.file(imagedata.filename, imagedata.data.slice(23), { base64: true });
+    });
+    var content = zip.generate({ type: "blob" });
+    saveAs(content, "images.zip");
+}
+
+function dataURL2Blob(dataurl) {
+    var barr;
+    var bin;
+    var i;
+    var len;
+    bin = atob(dataurl.split("base64,")[1]);
+    len = bin.length;
+    barr = new Uint8Array(len);
+    i = 0;
+    while (i < len) {
+        barr[i] = bin.charCodeAt(i);
+        i++;
+    }
+    return new Blob([barr], {
+        type: "image/jpeg"
+    });
+}
+
+function saveJpeg(imagedatas) {
+    var canvas = imagedatas[0].canvas;
+    if (canvas != null || canvas != undefined) {
+        canvas.toBlob(function (blob) {
+            saveAs(blob, imagedatas[0].filename);
+        }, "image/jpeg", _options.quality);
+    } else {
+        var blob = dataURL2Blob(imagedatas[0].data);
+        saveAs(blob, imagedatas[0].filename);
+    }
+}
+
+function saveImages() {
+    $("#wait_create_files_mask").fadeIn(100);
+    setTimeout(function () {
+        if (_imagedatas.length == 1) {
+            saveJpeg(_imagedatas);
+        } else if (_imagedatas.length > 1) {
+            saveZip(_imagedatas);
+        } else {
+            // 何もしない
+        }
+        $("#wait_create_files_mask").fadeOut(100);
+    }, 100);
+}
+
+function getSize(image) {
+    var alpha = 100;
+    var size = {
+        scale: 0,
+        width: _options.maxWidth,
+        height: _options.maxHeight
+    };
+    if (_options.doResize) {
+        if (_options.maxWidth > 0) {
+            if (image.width > _options.maxWidth) {
+                alpha = ~~((image.width - _options.maxWidth) * 0.04);
+                size.scale = (Math.sqrt((_options.maxWidth + alpha) / image.width));
+                size.height = ~~((image.height / image.width) * _options.maxWidth);
+            } else if (image.width == _options.maxWidth) {
+                size.scale = 1;
+                size.width = image.width;
+                size.height = image.height;
+            } else {
+                size.width = _options.maxWidth;
+                size.height = ~~((image.height / image.width) * _options.maxWidth);
+                size.scale = 1;
+            }
+        } else {
+            if (image.height > _options.maxHeight) {
+                alpha = ~~((image.height - _options.maxHeight) * 0.04);
+                size.scale = (Math.sqrt((_options.maxHeight + alpha) / image.height));
+                size.width = ~~((image.width / image.height) * _options.maxHeight);
+            } else if (image.height == _options.maxHeight) {
+                size.scale = 1;
+                size.width = image.width;
+                size.height = image.height;
+            } else {
+                size.width = ~~((image.width / image.height) * _options.maxHeight);
+                size.height = _options.maxHeight;
+                size.scale = 1;
+            }
+        }
+    } else {
+        size.scale = 1;
+        size.width = image.width;
+        size.height = image.height;
+    }
+    return size;
+}
+
+function scaleDown(image, size) {
+    var dw, dh, sw, sh;
+    var canvas1 = document.createElement("canvas");
+    var context1 = canvas1.getContext("2d");
+    var canvas2 = document.createElement("canvas");
+    var context2 = canvas2.getContext("2d");
+
+    // 一回目の縮小
+    dw = canvas2.width = ~~(image.width * size.scale);
+    dh = canvas2.height = ~~(image.height * size.scale);
+    context2.drawImage(image, 0, 0, dw, dh);
+
+    // 二回目の縮小
+    dw = ~~(canvas2.width * size.scale);
+    dh = ~~(canvas2.height * size.scale);
+    context2.drawImage(canvas2, 0, 0, dw, dh);
+
+    // 三回目の縮小
+    sw = ~~(canvas2.width * size.scale);
+    sh = ~~(canvas2.height * size.scale);
+    dw = canvas1.width = size.width;
+    dh = canvas1.height = size.height;
+    context1.drawImage(canvas2, 0, 0, sw, sh, 0, 0, dw, dh);
+    return context1.getImageData(0, 0, size.width, size.height);
+}
+
+function scaleUp(image, size) {
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext("2d");
+    canvas.width = size.width;
+    canvas.height = size.height;
+    context.drawImage(image, 0, 0, image.width, image.height, 0, 0, size.width, size.height);
+    var imagedata = context.getImageData(0, 0, size.width, size.height);
+    return imagedata;
+}
+
+function scaleChange(image) {
+    var size = getSize(image);
+    if (size.scale < 1) {
+        return scaleDown(image, size);
+    } else {
+        return scaleUp(image, size);
+    }
+}
+
+function loadedImages(images) {
+    var progressVal = 0;
+    downloadButtonStyle(false);
+    _imagedatas = new Array();
+    images.forEach(function (image, index) {
+        var imagedata = scaleChange(image);
+        var worker = new Worker("Scripts/Home/Gamma.js");
+        worker.addEventListener("message", function (e) {
+            addImagedatas(e.data.imagedata, e.data.filename, ++progressVal, images.length);
+        }, false);
+        worker.postMessage({
+            imagedata: imagedata,
+            filename: image.filename,
+            gamma: _options.gamma
+        });
+    });
+}
+
+function addImagedatas(imagedata, filename, progressVal, imagesLength) {
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext("2d");
+    canvas.width = imagedata.width;
+    canvas.height = imagedata.height;
+    context.putImageData(imagedata, 0, 0);
+    _imagedatas.push({
+        data: canvas.toDataURL("image/jpeg", _options.quality),
+        filename: filename,
+        canvas: canvas
+    });
+    if (progress(progressVal, imagesLength)) {
+        downloadButtonStyle(true);
+        dispProgressWrap(false);
+    }
+}
+
+function dispProgressWrap(visible) {
+    if (visible) {
+        $("#progress_wrap").show();
+        $("#progress_bar span").css("width", "0px");
+    } else {
+        $("#progress_wrap").fadeOut(100);
+    }
+}
+
+function progress(val, imageNum) {
+    var w = ~~((val / imageNum) * 100) * 5;
+    $("#progress_bar span").animate({ "width": w + "px" }, 50);
+    return (val >= imageNum);
+}
+
+// #region resize.js バージョン
+
+function resize0(images) {
+    var imagedatas = new Array();
+    images.forEach(function (image, index) {
+        var filename = image.filename;
+        var originalWidth = image.width;
+        var originalHeight = image.height;
+        var newWidth;
+        var newHeight;
+        if (originalWidth > originalHeight) {
+            newWidth = _options.maxWidth;
+            newHeight = originalHeight * _options.maxWidth / originalWidth;
+        } else {
+            newWidth = originalWidth * _options.maxHeight / originalHeight;
+            newHeight = _options.maxHeight;
+        }
+        var useWebWorker = true;
+        var blendAlpha = true;
+        interpolationPass = true;
+        var resizer = new Resize(originalWidth, originalHeight, newWidth, newHeight, blendAlpha, interpolationPass, useWebWorker, function (frameBuffer) {
+            var canvasDst = document.createElement("canvas");
+            canvasDst.width = newWidth;
+            canvasDst.height = newHeight;
+            var contextDst = canvasDst.getContext("2d");
+            var imageBuffer = contextDst.createImageData(newWidth, newHeight);
+            var data = imageBuffer.data;
+            var length = data.length;
+            for (var x = 0; x < length; ++x) {
+                data[x] = frameBuffer[x] & 0xFF;
+            }
+            contextDst.putImageData(imageBuffer, 0, 0);
+            var imagedata = contextDst.getImageData(0, 0, newWidth, newHeight);
+            imagedata.filename = this.filename;
+            imagedatas.push(imagedata);
+            if (imagedatas.length == images.length) {
+                loadedImages2(imagedatas);
+            }
+        });
+        var canvasSrc = document.createElement("canvas");
+        canvasSrc.width = originalWidth;
+        canvasSrc.height = originalHeight;
+        var contextSrc = canvasSrc.getContext("2d");
+        contextSrc.drawImage(image, 0, 0, originalWidth, originalHeight);
+        var dataToScale = contextSrc.getImageData(0, 0, originalWidth, originalHeight).data;
+        resizer.filename = image.filename;;
+        resizer.resize(dataToScale);
+    });
+}
+
+function loadedImages2(imagedatas) {
+    var imagedatas2 = new Array();
+    imagedatas.forEach(function (imagedata, index) {
+        var worker = new Worker("Scripts/Home/Gamma.js");
+        worker.addEventListener('message', function (e) {
+            var canvas = document.createElement("canvas");
+            var context = canvas.getContext("2d");
+            canvas.width = e.data.imagedata.width;
+            canvas.height = e.data.imagedata.height;
+            context.putImageData(e.data.imagedata, 0, 0);
+            imagedatas2.push({
+                data: canvas.toDataURL("image/jpeg", _options.quality).slice(23),
+                filename: "min_" + e.data.filename
+            });
+            _progress++;
+            if (_progress == imagedatas.length) {
+                saveZip(imagedatas2);
+            }
+            $("#progress").text(_progress);
+        }, false);
+        worker.postMessage({
+            imagedata: imagedata,
+            filename: imagedata.filename,
+            gamma: _options.gamma
+        });
+    });
+}
+
+// #endregion
+
+// #region 物置
+
+function scaleDown0(image, maxWidth, maxHeight) {
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext("2d");
+    canvas.width = 500;
+    canvas.height = 299;
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    var flag = false;
+    context.msImageSmoothingEnabled = flag;
+    context.mozImageSmoothingEnabled = flag;
+    context.webkitImageSmoothingEnabled = flag;
+    context.imageSmoothingEnabled = flag;
+
+    return context.getImageData(0, 0, 500, 299);
+}
+
+/*
+ * 輝度調整
+ */
+function brightness(src) {
+    var gamma = 2.5;
+    for (var i = 0; i < src.data.length; i = i + 4) {
+        src.data[i + 0] = ~~(255 * Math.pow((src.data[i + 0] / 255), 1 / gamma));
+        src.data[i + 1] = ~~(255 * Math.pow((src.data[i + 1] / 255), 1 / gamma));
+        src.data[i + 2] = ~~(255 * Math.pow((src.data[i + 2] / 255), 1 / gamma));
+        src.data[i + 3] = src.data[i + 3];
+    }
+    return src;
+}
+
+function resize(img, maxWidth, maxHeight) {
+    var size = {
+        width: maxWidth,
+        height: maxHeight
+    };
+    if (maxWidth != 0) {
+        size.width = maxWidth;
+        size.height = ~~((img.height / img.width) * maxWidth);
+    }
+    if (maxHeight != 0) {
+        size.height = maxHeight;
+        size.width = ~~((img.width / img.height) * maxHeight);
+    }
+    return size;
+}
+
+function scaleDown2(img, maxWidth, maxHeight) {
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext("2d");
+    var size = resize(img, MAX_WIDTH, MAX_HEIGHT);
+    canvas.width = size.width;
+    canvas.height = size.height;
+    context.drawImage(img, 0, 0, size.width, size.height);
+    return canvas;
+}
+
+function scaleDown3(img, maxWidth, maxHeight) {
+    var size = getSize(img, maxWidth, maxHeight);
+    var canvas1 = document.createElement("canvas");
+    var context1 = canvas1.getContext("2d");
+
+    /// step 1
+    var canvas2 = document.createElement("canvas");
+    var context2 = canvas2.getContext("2d");
+
+    canvas2.width = ~~(img.width * size.scale);
+    canvas2.height = ~~(img.height * size.scale);
+    context2.drawImage(img, 0, 0, canvas2.width, canvas2.height);
+
+    /// step 2
+    context2.drawImage(canvas2, 0, 0, ~~(canvas2.width * size.scale), ~~(canvas2.height * size.scale),
+        0, 0, 500, 299);
+    return canvas2;
+
+    //canvas1.width = size.width;
+    //canvas1.height = size.height;
+    //context1.drawImage(canvas2, 0, 0, ~~(canvas2.width * size.scale), ~~(canvas2.height * size.scale),
+    //                 0, 0, canvas1.width, canvas1.height);
+    //return canvas1;
+}
+
+//var zip = new JSZip();
+//zip.file("Hello.txt", "Hello World\n");
+//var img = zip.folder("images");
+//img.file("smile.gif", imgData, { base64: true });
+//var content = zip.generate({ type: "blob" });
+//// see FileSaver.js
+//saveAs(content, "example.zip");
+
+// #endregion

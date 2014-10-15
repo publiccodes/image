@@ -1,0 +1,16 @@
+﻿#social_button_wrap {
+    width: 70px;
+    position: fixed;
+    top: 50%;
+    right: 10px;
+    margin: -95px 0 0;
+    text-align: center;
+    background-color: rgba(252,252,252,0.5);
+    padding: 5px;
+    border: 1px solid #ddd;
+    box-shadow: 0 0 3px rgba(0,0,0,0.05);
+}
+
+#space {
+    height: 10px;
+}
