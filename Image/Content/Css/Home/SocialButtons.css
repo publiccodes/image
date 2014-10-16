@@ -2,7 +2,6 @@
     width: 70px;
     height: 280px;
     position: absolute;
-    top: -500px;
     right: 10px;
     text-align: center;
     background-color: rgba(252,252,252,0.5);
@@ -12,6 +11,22 @@
     display: none;
 }
 
-#space {
-    height: 7px;
-}
+    #social_button_wrap div {
+        margin-bottom: 10px;
+    }
+
+        #social_button_wrap div:nth-child(1) {
+            height: 60px;
+        }
+
+        #social_button_wrap div:nth-child(2) {
+            height: 60px;
+        }
+
+        #social_button_wrap div:nth-child(3) {
+            height: 60px;
+        }
+
+        #social_button_wrap div:nth-child(4) {
+            height: 50px;
+        }
