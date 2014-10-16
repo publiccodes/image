@@ -99,7 +99,11 @@ function openFiles(files) {
             });
             reader.readAsDataURL(file);
         } else {
-            count++;
+            if (++count == files.length) {
+                alert("jpegファイルのみ対応しています。");
+                dispProgressWrap(false);
+                downloadButtonStyle(false);
+            }
         }
     });
 }
