@@ -1,14 +1,15 @@
 ﻿#social_button_wrap {
     width: 70px;
-    position: fixed;
-    top: 50%;
+    height: 280px;
+    position: absolute;
+    top: -500px;
     right: 10px;
-    margin: -95px 0 0;
     text-align: center;
     background-color: rgba(252,252,252,0.5);
-    padding: 10px 5px;
+    padding: 10px 5px 0;
     border: 1px solid #ddd;
     box-shadow: 0 0 3px rgba(0,0,0,0.05);
+    display: none;
 }
 
 #space {

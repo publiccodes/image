@@ -8,7 +8,38 @@
     socialButtonWrap.append("<div id='space'></div>");
     socialButtonWrap.append(getHatenaCode());
     $("body").append(socialButtonWrap);
+
+    initSocialWrap();
+    $(window).scroll(function () {
+        var scrollTop = $(window).scrollTop();
+        moveCenter(scrollTop);
+    });
 });
+
+function initSocialWrap() {
+    setTimeout(function () {
+        var H = $(window).innerHeight();
+        var h = $(social_button_wrap).height();
+        var dh = ~~((H - h) / 2);
+        $("#social_button_wrap").css({
+            top: dh + "px"
+        }).fadeIn(700);
+    }, 1000);
+}
+
+function moveCenter(scrollTop) {
+    if ($("#social_button_wrap").is(":animated")) {
+        $("#social_button_wrap").stop(true, false);
+    }
+    var H = $(window).innerHeight();
+    var h = $(social_button_wrap).height();
+    var dh = ~~((H - h) / 2);
+    $("#social_button_wrap").animate({
+        "top": (dh + scrollTop) + "px"
+    }, 1500, "easeOutElastic");
+    //easeOutElastic
+    //easeOutBounce
+}
 
 function getFacebookCode() {
     return "<div class='fb-like' data-layout='box_count' data-action='like' data-show-faces='false' data-share='false'></div>";
