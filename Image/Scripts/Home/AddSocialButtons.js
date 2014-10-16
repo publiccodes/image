@@ -26,7 +26,7 @@ function moveCenter(scrollTop) {
     var dh = ~~((H - h) / 2);
     $("#social_button_wrap").animate({
         "top": (dh + scrollTop) + "px"
-    }, 1500, "easeOutElastic");
+    }, 1500, "easeOutBounce");
     //easeOutElastic
     //easeOutBounce
 }
